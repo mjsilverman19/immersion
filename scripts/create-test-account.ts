@@ -104,10 +104,8 @@ async function main() {
   await ensureProfile(supabase, userId);
 }
 
-async function ensureProfile(
-  supabase: ReturnType<typeof createClient>,
-  userId: string
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureProfile(supabase: any, userId: string) {
   // Check if profile already exists
   const { data: existing } = await supabase
     .from("profiles")
