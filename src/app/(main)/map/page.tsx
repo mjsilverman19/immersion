@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/supabase/auth-provider";
@@ -19,50 +19,59 @@ export default function GlobalMapPage() {
   const { user, profile, isLoading: authLoading } = useAuth();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     async function fetchPlaces() {
-      const placeMap = new Map<string, Place>();
+      try {
+        const placeMap = new Map<string, Place>();
 
-      // Fetch places the user has logged
-      const { data: logs } = await supabase
-        .from("logs")
-        .select("place:places!logs_place_id_fkey(*)")
-        .eq("user_id", user!.id);
+        // Fetch places the user has logged
+        const { data: logs } = await supabase
+          .from("logs")
+          .select("*, places(*)")
+          .eq("user_id", user!.id);
 
-      if (logs) {
-        for (const log of logs) {
-          const place = log.place as unknown as Place;
-          if (place?.id) placeMap.set(place.id, place);
-        }
-      }
-
-      // Fetch places from the user's lists
-      const { data: lists } = await supabase
-        .from("lists")
-        .select("id")
-        .eq("user_id", user!.id);
-
-      if (lists && lists.length > 0) {
-        const listIds = lists.map((l) => l.id);
-        const { data: listItems } = await supabase
-          .from("list_items")
-          .select("place:places!list_items_place_id_fkey(*)")
-          .in("list_id", listIds);
-
-        if (listItems) {
-          for (const item of listItems) {
-            const place = item.place as unknown as Place;
+        if (logs) {
+          for (const log of logs) {
+            const place = (log as Record<string, unknown>).places as Place | null;
             if (place?.id) placeMap.set(place.id, place);
           }
         }
-      }
 
-      setPlaces(Array.from(placeMap.values()));
-      setLoading(false);
+        // Fetch places from the user's lists
+        const { data: lists } = await supabase
+          .from("lists")
+          .select("id")
+          .eq("user_id", user!.id);
+
+        if (lists && lists.length > 0) {
+          const listIds = lists.map((l) => l.id);
+          const { data: listItems } = await supabase
+            .from("list_items")
+            .select("*, places(*)")
+            .in("list_id", listIds);
+
+          if (listItems) {
+            for (const item of listItems) {
+              const place = (item as Record<string, unknown>).places as Place | null;
+              if (place?.id) placeMap.set(place.id, place);
+            }
+          }
+        }
+
+        setPlaces(Array.from(placeMap.values()));
+      } catch (err) {
+        console.error("Failed to fetch places for map:", err);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchPlaces();
