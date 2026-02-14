@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/supabase/auth-provider";
 import CitySelector from "@/components/ui/CitySelector";
@@ -100,6 +101,37 @@ export default function EditProfilePage() {
           {loading ? "Saving..." : "Save changes"}
         </button>
       </form>
+
+      <div className="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">Import Data</h2>
+        <Link
+          href="/import"
+          className="mt-3 flex items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="h-4 w-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium dark:text-white">Import from Google Maps</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Upload your Google Takeout saved places
+            </p>
+          </div>
+        </Link>
+      </div>
     </div>
   );
 }

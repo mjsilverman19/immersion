@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/city") ||
     request.nextUrl.pathname.startsWith("/place") ||
     request.nextUrl.pathname.startsWith("/list") ||
-    request.nextUrl.pathname.startsWith("/lists");
+    request.nextUrl.pathname.startsWith("/lists") ||
+    request.nextUrl.pathname.startsWith("/import");
 
   if (!user && isMainRoute) {
     const url = request.nextUrl.clone();
