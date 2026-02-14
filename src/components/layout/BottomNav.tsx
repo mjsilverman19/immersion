@@ -123,7 +123,7 @@ export default function BottomNav() {
             return (
               <Link
                 key={tab.label}
-                href="/explore?log=true"
+                href="/log"
                 className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center p-2"
               >
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black">
