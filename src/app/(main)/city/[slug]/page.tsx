@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import PlaceCard from "@/components/place/PlaceCard";
 import ListCard from "@/components/list/ListCard";
 import Avatar from "@/components/ui/Avatar";
+import CityMap from "@/components/map/CityMap";
 import Link from "next/link";
 
 interface Props {
@@ -60,7 +61,10 @@ export default async function CityPage({ params }: Props) {
   return (
     <div>
       <div className="border-b border-gray-200 p-6 dark:border-gray-800">
-        <div className="aspect-[2/1] rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900" />
+        <CityMap
+          center={[city.latitude, city.longitude]}
+          places={places || []}
+        />
         <h1 className="mt-4 text-2xl font-bold">{city.name}</h1>
         <p className="text-sm text-gray-500">{city.country}</p>
         <div className="mt-2 flex gap-4 text-sm text-gray-500">
