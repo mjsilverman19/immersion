@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/supabase/auth-provider";
 import { useToast } from "@/components/ui/Toast";
 import RatingStars from "./RatingStars";
@@ -25,47 +24,45 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
   const [review, setReview] = useState(existingLog?.review ?? "");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0 || !user) return;
+    if (rating === 0) return;
     setLoading(true);
 
     const isLocalLog = profile?.home_city_id === place.city_id;
 
-    const logData = {
-      user_id: user.id,
-      place_id: place.id,
-      rating,
-      tags,
-      review: review || null,
-      is_local_log: isLocalLog,
-    };
+    try {
+      const res = await fetch("/api/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          place_id: place.id,
+          rating,
+          tags,
+          review: review || null,
+          is_local_log: isLocalLog,
+        }),
+      });
 
-    if (existingLog) {
-      const { error } = await supabase.from("logs").update(logData).eq("id", existingLog.id);
-      if (error) {
-        console.error("Error updating log:", error);
-        toast("Failed to update log");
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error || "Failed to save log");
         setLoading(false);
         return;
       }
-    } else {
-      const { error } = await supabase.from("logs").insert(logData);
-      if (error) {
-        console.error("Error inserting log:", error);
-        toast(error.code === "23505" ? "You've already logged this place" : "Failed to save log");
-        setLoading(false);
-        return;
-      }
+
+      const data = await res.json();
+      toast(data.updated ? "Log updated" : "Place logged!");
+      router.push(`/place/${place.id}`);
+      router.refresh();
+    } catch (err) {
+      console.error("Error saving log:", err);
+      toast("Failed to save log");
+      setLoading(false);
     }
-
-    toast(existingLog ? "Log updated" : "Place logged!");
-    router.push(`/place/${place.id}`);
-    router.refresh();
   };
 
   return (
