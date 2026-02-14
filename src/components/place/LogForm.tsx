@@ -46,9 +46,21 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
     };
 
     if (existingLog) {
-      await supabase.from("logs").update(logData).eq("id", existingLog.id);
+      const { error } = await supabase.from("logs").update(logData).eq("id", existingLog.id);
+      if (error) {
+        console.error("Error updating log:", error);
+        toast("Failed to update log");
+        setLoading(false);
+        return;
+      }
     } else {
-      await supabase.from("logs").insert(logData);
+      const { error } = await supabase.from("logs").insert(logData);
+      if (error) {
+        console.error("Error inserting log:", error);
+        toast(error.code === "23505" ? "You've already logged this place" : "Failed to save log");
+        setLoading(false);
+        return;
+      }
     }
 
     toast(existingLog ? "Log updated" : "Place logged!");
