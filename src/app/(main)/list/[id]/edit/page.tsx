@@ -1,0 +1,196 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/supabase/auth-provider";
+import { useToast } from "@/components/ui/Toast";
+import CitySelector from "@/components/ui/CitySelector";
+import PlaceSearch from "@/components/place/PlaceSearch";
+import type { Place } from "@/lib/types/database";
+
+interface ListItemDraft {
+  place: Place;
+  note: string;
+}
+
+export default function EditListPage() {
+  const params = useParams();
+  const listId = params.id as string;
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [cityId, setCityId] = useState("");
+  const [items, setItems] = useState<ListItemDraft[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const { profile } = useAuth();
+  const router = useRouter();
+  const supabase = createClient();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchList = async () => {
+      const { data: list } = await supabase
+        .from("lists")
+        .select("*")
+        .eq("id", listId)
+        .single();
+
+      if (list) {
+        setTitle(list.title);
+        setDescription(list.description || "");
+        setCityId(list.city_id || "");
+      }
+
+      const { data: listItems } = await supabase
+        .from("list_items")
+        .select("*, place:places!list_items_place_id_fkey(*)")
+        .eq("list_id", listId)
+        .order("position");
+
+      if (listItems) {
+        setItems(
+          listItems.map((item) => ({
+            place: item.place as unknown as Place,
+            note: item.note || "",
+          }))
+        );
+      }
+      setLoaded(true);
+    };
+    fetchList();
+  }, [listId, supabase]);
+
+  const addPlace = (place: Place) => {
+    if (items.find((i) => i.place.id === place.id)) return;
+    setItems([...items, { place, note: "" }]);
+  };
+
+  const removeItem = (idx: number) => {
+    setItems(items.filter((_, i) => i !== idx));
+  };
+
+  const updateNote = (idx: number, note: string) => {
+    const next = [...items];
+    next[idx].note = note;
+    setItems(next);
+  };
+
+  const moveItem = (idx: number, dir: -1 | 1) => {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= items.length) return;
+    const next = [...items];
+    [next[idx], next[newIdx]] = [next[newIdx], next[idx]];
+    setItems(next);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || items.length === 0) return;
+    setLoading(true);
+
+    await supabase
+      .from("lists")
+      .update({
+        title,
+        description: description || null,
+        city_id: cityId || null,
+      })
+      .eq("id", listId);
+
+    // Delete old items and insert new ones
+    await supabase.from("list_items").delete().eq("list_id", listId);
+
+    const listItems = items.map((item, idx) => ({
+      list_id: listId,
+      place_id: item.place.id,
+      position: idx,
+      note: item.note || null,
+    }));
+
+    await supabase.from("list_items").insert(listItems);
+
+    toast("List updated!");
+    router.push(`/list/${listId}`);
+  };
+
+  if (!loaded) return <div className="p-4 text-center text-sm text-gray-500">Loading...</div>;
+
+  return (
+    <div className="p-4">
+      <h1 className="mb-6 text-2xl font-bold">Edit List</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="title" className="mb-1 block text-sm font-medium">Title</label>
+          <input
+            id="title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            maxLength={100}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="description" className="mb-1 block text-sm font-medium">Description</label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={500}
+            rows={2}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900"
+          />
+        </div>
+
+        <CitySelector value={cityId || null} onChange={setCityId} />
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">Add Places</label>
+          <PlaceSearch onSelect={addPlace} />
+        </div>
+
+        {items.length > 0 && (
+          <div>
+            <label className="mb-2 block text-sm font-medium">Places ({items.length})</label>
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <div key={item.place.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-500">{idx + 1}.</span>
+                      <p className="font-medium">{item.place.name}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button type="button" onClick={() => moveItem(idx, -1)} className="rounded p-1 text-gray-400 hover:bg-gray-100" disabled={idx === 0}>↑</button>
+                      <button type="button" onClick={() => moveItem(idx, 1)} className="rounded p-1 text-gray-400 hover:bg-gray-100" disabled={idx === items.length - 1}>↓</button>
+                      <button type="button" onClick={() => removeItem(idx)} className="rounded p-1 text-red-400 hover:bg-red-50">✕</button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    value={item.note}
+                    onChange={(e) => updateNote(idx, e.target.value)}
+                    placeholder="Add a note..."
+                    className="mt-2 w-full rounded border border-gray-200 px-2 py-1 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !title || items.length === 0}
+          className="w-full rounded-lg bg-black py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+        >
+          {loading ? "Saving..." : "Save Changes"}
+        </button>
+      </form>
+    </div>
+  );
+}
