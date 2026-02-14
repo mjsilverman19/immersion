@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/supabase/auth-provider";
@@ -16,68 +16,59 @@ const MapView = dynamic(() => import("@/components/map/MapView"), {
 });
 
 export default function GlobalMapPage() {
-  const { user, profile, isLoading: authLoading } = useAuth();
+  const { user, profile } = useAuth();
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = createClient();
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  const fetchPlaces = useCallback(async () => {
+    if (!user) return;
 
-    async function fetchPlaces() {
-      try {
-        const placeMap = new Map<string, Place>();
+    const placeMap = new Map<string, Place>();
 
-        // Fetch places the user has logged
-        const { data: logs } = await supabase
-          .from("logs")
-          .select("*, places(*)")
-          .eq("user_id", user!.id);
+    // Fetch places the user has logged
+    const { data: logs } = await supabase
+      .from("logs")
+      .select("*, places!logs_place_id_fkey(id, name, city_id, address, latitude, longitude, category, subcategory, photo_urls, google_maps_url, google_place_id, created_at)")
+      .eq("user_id", user.id);
 
-        if (logs) {
-          for (const log of logs) {
-            const place = (log as Record<string, unknown>).places as Place | null;
-            if (place?.id) placeMap.set(place.id, place);
-          }
-        }
-
-        // Fetch places from the user's lists
-        const { data: lists } = await supabase
-          .from("lists")
-          .select("id")
-          .eq("user_id", user!.id);
-
-        if (lists && lists.length > 0) {
-          const listIds = lists.map((l) => l.id);
-          const { data: listItems } = await supabase
-            .from("list_items")
-            .select("*, places(*)")
-            .in("list_id", listIds);
-
-          if (listItems) {
-            for (const item of listItems) {
-              const place = (item as Record<string, unknown>).places as Place | null;
-              if (place?.id) placeMap.set(place.id, place);
-            }
-          }
-        }
-
-        setPlaces(Array.from(placeMap.values()));
-      } catch (err) {
-        console.error("Failed to fetch places for map:", err);
-      } finally {
-        setLoading(false);
+    if (logs) {
+      for (const log of logs) {
+        const place = (log as Record<string, unknown>).places as Place | null;
+        if (place?.id) placeMap.set(place.id, place);
       }
     }
 
-    fetchPlaces();
-  }, [user, authLoading, supabase]);
+    // Fetch places from the user's lists
+    const { data: lists } = await supabase
+      .from("lists")
+      .select("id")
+      .eq("user_id", user.id);
 
-  if (authLoading || loading) {
+    if (lists && lists.length > 0) {
+      const listIds = lists.map((l) => l.id);
+      const { data: listItems } = await supabase
+        .from("list_items")
+        .select("*, places!list_items_place_id_fkey(id, name, city_id, address, latitude, longitude, category, subcategory, photo_urls, google_maps_url, google_place_id, created_at)")
+        .in("list_id", listIds);
+
+      if (listItems) {
+        for (const item of listItems) {
+          const place = (item as Record<string, unknown>).places as Place | null;
+          if (place?.id) placeMap.set(place.id, place);
+        }
+      }
+    }
+
+    setPlaces(Array.from(placeMap.values()));
+    setLoading(false);
+  }, [user, supabase]);
+
+  useEffect(() => {
+    fetchPlaces();
+  }, [fetchPlaces]);
+
+  if (loading && places.length === 0) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
         <p className="text-sm text-gray-400">Loading your places...</p>
