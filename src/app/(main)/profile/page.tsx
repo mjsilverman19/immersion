@@ -1,23 +1,24 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/supabase/auth-provider";
+export default async function ProfileRedirect() {
+  const supabase = createClient();
 
-export default function ProfileRedirect() {
-  const { profile, isLoading } = useAuth();
-  const router = useRouter();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    if (isLoading) return;
-    if (profile?.username) {
-      router.replace(`/profile/${profile.username}`);
-    }
-  }, [profile, isLoading, router]);
+  if (!user) redirect("/login");
 
-  return (
-    <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
-      <p className="text-sm text-gray-400">Loading profile...</p>
-    </div>
-  );
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.username) {
+    redirect(`/profile/${profile.username}`);
+  }
+
+  redirect("/feed");
 }
