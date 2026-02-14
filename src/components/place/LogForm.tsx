@@ -26,18 +26,18 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0) return;
+    if (rating === 0 || !user) return;
     setLoading(true);
 
     const isLocalLog = profile?.home_city_id === place.city_id;
 
     const logData = {
-      user_id: profile!.id,
+      user_id: user.id,
       place_id: place.id,
       rating,
       tags,
