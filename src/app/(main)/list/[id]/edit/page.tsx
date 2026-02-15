@@ -127,7 +127,7 @@ export default function EditListPage() {
             onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={100}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
           />
         </div>
 
@@ -139,7 +139,7 @@ export default function EditListPage() {
             onChange={(e) => setDescription(e.target.value)}
             maxLength={500}
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
           />
         </div>
 
@@ -155,7 +155,7 @@ export default function EditListPage() {
             <label className="mb-2 block text-sm font-medium">Places ({items.length})</label>
             <div className="space-y-3">
               {items.map((item, idx) => (
-                <div key={item.place.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                <div key={item.place.id} className="rounded-lg border border-gray-200 p-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-500">{idx + 1}.</span>
@@ -172,7 +172,7 @@ export default function EditListPage() {
                     value={item.note}
                     onChange={(e) => updateNote(idx, e.target.value)}
                     placeholder="Add a note..."
-                    className="mt-2 w-full rounded border border-gray-200 px-2 py-1 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+                    className="mt-2 w-full rounded border border-gray-200 px-2 py-1 text-sm focus:border-black focus:outline-none"
                   />
                 </div>
               ))}
@@ -183,7 +183,7 @@ export default function EditListPage() {
         <button
           type="submit"
           disabled={loading || !title || items.length === 0}
-          className="w-full rounded-lg bg-black py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          className="w-full rounded-lg bg-black py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save Changes"}
         </button>

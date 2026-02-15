@@ -143,8 +143,8 @@ export default function TakeoutUpload() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="text-2xl font-bold dark:text-white">Import from Google Maps</h1>
-      <p className="mt-2 text-gray-500 dark:text-gray-400">
+      <h1 className="text-2xl font-bold">Import from Google Maps</h1>
+      <p className="mt-2 text-gray-500">
         Import your saved places from Google Takeout to get started.
       </p>
 
@@ -161,11 +161,11 @@ export default function TakeoutUpload() {
             onClick={() => fileInputRef.current?.click()}
             className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
               isDragOver
-                ? "border-black bg-gray-50 dark:border-white dark:bg-gray-900"
-                : "border-gray-300 hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-600"
+                ? "border-black bg-gray-50"
+                : "border-gray-300 hover:border-gray-400"
             }`}
           >
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -181,10 +181,10 @@ export default function TakeoutUpload() {
                 />
               </svg>
             </div>
-            <p className="font-medium dark:text-white">
+            <p className="font-medium">
               Drop your Saved Places.json here
             </p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-gray-500">
               or click to browse
             </p>
           </div>
@@ -201,14 +201,14 @@ export default function TakeoutUpload() {
           />
 
           {parseError && (
-            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
               {parseError}
             </div>
           )}
 
-          <div className="mt-8 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
-            <h3 className="font-medium dark:text-white">How to get your file</h3>
-            <ol className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-8 rounded-lg bg-gray-50 p-4">
+            <h3 className="font-medium">How to get your file</h3>
+            <ol className="mt-2 space-y-2 text-sm text-gray-600">
               <li>
                 1. Go to{" "}
                 <a
@@ -232,26 +232,26 @@ export default function TakeoutUpload() {
       {/* Preview Phase */}
       {phase === "preview" && (
         <div className="mt-6">
-          <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+          <div className="rounded-lg border border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="h-5 w-5 text-green-600 dark:text-green-400"
+                  className="h-5 w-5 text-green-600"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
               </div>
               <div>
-                <p className="font-medium dark:text-white">
+                <p className="font-medium">
                   {features.length} places ready to import
                 </p>
                 {skippedInParse > 0 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-gray-500">
                     {skippedInParse} entries skipped (invalid data)
                     {totalInFile > 500 && ` · capped at 500 of ${totalInFile} total`}
                   </p>
@@ -260,7 +260,7 @@ export default function TakeoutUpload() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600 dark:bg-gray-900 dark:text-gray-400">
+          <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
             Places will be imported into a private list called &quot;Google Maps Import&quot;.
             You can browse them and log your favorites with ratings later.
           </div>
@@ -271,13 +271,13 @@ export default function TakeoutUpload() {
                 setPhase("upload");
                 setFeatures([]);
               }}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               onClick={startImport}
-              className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              className="flex-1 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
             >
               Start Import
             </button>
@@ -292,14 +292,14 @@ export default function TakeoutUpload() {
             {/* Progress bar */}
             <div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500 dark:text-gray-400">Importing places...</span>
-                <span className="font-medium dark:text-white">
+                <span className="text-gray-500">Importing places...</span>
+                <span className="font-medium">
                   {progress.processed} / {progress.total}
                 </span>
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
                 <div
-                  className="h-full rounded-full bg-black transition-all duration-300 dark:bg-white"
+                  className="h-full rounded-full bg-black transition-all duration-300"
                   style={{
                     width: `${progress.total > 0 ? (progress.processed / progress.total) * 100 : 0}%`,
                   }}
@@ -309,12 +309,12 @@ export default function TakeoutUpload() {
 
             {/* Current place */}
             {progress.current && (
-              <p className="truncate text-sm text-gray-500 dark:text-gray-400">
+              <p className="truncate text-sm text-gray-500">
                 {progress.current}
               </p>
             )}
 
-            <p className="text-xs text-gray-400 dark:text-gray-500">
+            <p className="text-xs text-gray-400">
               This may take a minute. Please don&apos;t close this page.
             </p>
           </div>
@@ -324,23 +324,23 @@ export default function TakeoutUpload() {
       {/* Complete Phase */}
       {phase === "complete" && results && (
         <div className="mt-6">
-          <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+          <div className="rounded-lg border border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="h-5 w-5 text-green-600 dark:text-green-400"
+                  className="h-5 w-5 text-green-600"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
               </div>
               <div>
-                <p className="font-medium dark:text-white">Import complete!</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="font-medium">Import complete!</p>
+                <p className="text-sm text-gray-500">
                   {results.imported} places imported
                   {results.skipped > 0 && ` · ${results.skipped} skipped`}
                   {results.errors > 0 && ` · ${results.errors} errors`}
@@ -352,13 +352,13 @@ export default function TakeoutUpload() {
           <div className="mt-6 flex gap-3">
             <Link
               href={`/list/${results.listId}`}
-              className="flex-1 rounded-lg bg-black px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              className="flex-1 rounded-lg bg-black px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-800"
             >
               View Imported Places
             </Link>
             <Link
               href="/feed"
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium hover:bg-gray-50"
             >
               Go to Feed
             </Link>

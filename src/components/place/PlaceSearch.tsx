@@ -42,7 +42,7 @@ export default function PlaceSearch({ cityId, onSelect }: PlaceSearchProps) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search for a place..."
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white dark:focus:ring-white"
+        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
       />
       {loading && <p className="mt-2 text-sm text-gray-500">Searching...</p>}
       {results.length > 0 && (
@@ -52,11 +52,11 @@ export default function PlaceSearch({ cityId, onSelect }: PlaceSearchProps) {
               <button
                 type="button"
                 onClick={() => onSelect(place)}
-                className="w-full rounded-lg p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-900"
+                className="w-full rounded-lg p-3 text-left hover:bg-gray-50"
               >
                 <p className="font-medium">{place.name}</p>
                 <p className="text-sm text-gray-500">{place.address}</p>
-                <span className="mt-0.5 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                <span className="mt-0.5 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                   {place.category}
                 </span>
               </button>

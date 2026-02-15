@@ -46,7 +46,7 @@ export default function FeedItem({ item }: FeedItemProps) {
 
   return (
     <Link href={href} className="block">
-      <div className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50">
         <div className="flex items-center gap-3">
           <Avatar
             src={item.user.avatar_url}
@@ -70,7 +70,7 @@ export default function FeedItem({ item }: FeedItemProps) {
               <div>
                 <p className="font-medium">{item.place.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                     {item.place.category}
                   </span>
                   {item.place.city && (
@@ -85,7 +85,7 @@ export default function FeedItem({ item }: FeedItemProps) {
                 {item.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                    className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
                   >
                     {tag}
                   </span>
@@ -93,7 +93,7 @@ export default function FeedItem({ item }: FeedItemProps) {
               </div>
             )}
             {item.review && (
-              <p className="mt-2 text-sm text-gray-600 line-clamp-2 dark:text-gray-400">
+              <p className="mt-2 text-sm text-gray-600 line-clamp-2">
                 {item.review}
               </p>
             )}

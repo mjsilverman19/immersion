@@ -6,7 +6,7 @@ import type { Place } from "@/lib/types/database";
 const MapView = dynamic(() => import("@/components/map/MapView"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[300px] items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
+    <div className="flex h-[300px] items-center justify-center rounded-xl bg-gray-100">
       <p className="text-sm text-gray-400">Loading map...</p>
     </div>
   ),

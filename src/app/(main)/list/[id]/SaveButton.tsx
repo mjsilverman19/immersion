@@ -41,8 +41,8 @@ export default function SaveButton({ listId }: { listId: string }) {
       disabled={loading}
       className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
         saved
-          ? "bg-black text-white dark:bg-white dark:text-black"
-          : "border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          ? "bg-black text-white"
+          : "border border-gray-300 hover:bg-gray-50"
       }`}
     >
       {saved ? "Saved" : "Save"}

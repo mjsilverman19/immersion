@@ -46,7 +46,7 @@ export default function AvatarUpload({ currentUrl, onUpload }: AvatarUploadProps
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
         >
           {uploading ? "Uploading..." : "Upload photo"}
         </button>

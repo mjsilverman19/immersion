@@ -126,8 +126,8 @@ export default function FeedPage() {
   if (loading && items.length === 0) {
     return (
       <div>
-        <div className="sticky top-0 z-10 flex gap-2 border-b border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
-          <button className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-black">
+        <div className="sticky top-0 z-10 flex gap-2 border-b border-gray-200 bg-white p-4">
+          <button className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white">
             {mode === "following" ? "Following" : "Discover"}
           </button>
         </div>
@@ -138,13 +138,13 @@ export default function FeedPage() {
 
   return (
     <div>
-      <div className="sticky top-0 z-10 flex gap-2 border-b border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
+      <div className="sticky top-0 z-10 flex gap-2 border-b border-gray-200 bg-white p-4">
         <button
           onClick={() => setMode("following")}
           className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
             mode === "following"
-              ? "bg-black text-white dark:bg-white dark:text-black"
-              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              ? "bg-black text-white"
+              : "bg-gray-100 text-gray-700"
           }`}
         >
           Following
@@ -153,8 +153,8 @@ export default function FeedPage() {
           onClick={() => setMode("discover")}
           className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
             mode === "discover"
-              ? "bg-black text-white dark:bg-white dark:text-black"
-              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              ? "bg-black text-white"
+              : "bg-gray-100 text-gray-700"
           }`}
         >
           Discover
@@ -180,7 +180,7 @@ export default function FeedPage() {
           <button
             onClick={loadMore}
             disabled={loading}
-            className="w-full rounded-lg bg-gray-100 py-3 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300"
+            className="w-full rounded-lg bg-gray-100 py-3 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
           >
             {loading ? "Loading..." : "Load more"}
           </button>

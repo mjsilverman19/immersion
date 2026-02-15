@@ -22,7 +22,7 @@ interface ListCardProps {
 export default function ListCard({ list }: ListCardProps) {
   return (
     <Link href={`/list/${list.id}`} className="block">
-      <div className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50">
         <h3 className="font-medium">{list.title}</h3>
         {list.description && (
           <p className="mt-1 text-sm text-gray-500 line-clamp-2">

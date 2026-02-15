@@ -36,7 +36,7 @@ export default function Avatar({ src, alt, size = "md", className = "" }: Avatar
 
   return (
     <div
-      className={`${sizeMap[size]} flex items-center justify-center rounded-full bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400 ${className}`}
+      className={`${sizeMap[size]} flex items-center justify-center rounded-full bg-gray-200 text-gray-500 ${className}`}
     >
       <span className="text-xs font-medium uppercase">
         {alt.charAt(0)}

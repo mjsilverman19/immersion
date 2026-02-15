@@ -75,7 +75,7 @@ export default function EditProfilePage() {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
           />
         </div>
 
@@ -88,7 +88,7 @@ export default function EditProfilePage() {
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
           />
         </div>
 
@@ -97,19 +97,19 @@ export default function EditProfilePage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-black py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          className="w-full rounded-lg bg-black py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save changes"}
         </button>
       </form>
 
-      <div className="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">Import Data</h2>
+      <div className="mt-8 border-t border-gray-200 pt-6">
+        <h2 className="text-sm font-medium text-gray-500">Import Data</h2>
         <Link
           href="/import"
-          className="mt-3 flex items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          className="mt-3 flex items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -126,8 +126,8 @@ export default function EditProfilePage() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium dark:text-white">Import from Google Maps</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm font-medium">Import from Google Maps</p>
+            <p className="text-xs text-gray-500">
               Upload your Google Takeout saved places
             </p>
           </div>

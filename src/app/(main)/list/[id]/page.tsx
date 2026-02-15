@@ -30,7 +30,7 @@ export default async function ListDetailPage({ params }: Props) {
 
   return (
     <div>
-      <div className="border-b border-gray-200 p-6 dark:border-gray-800">
+      <div className="border-b border-gray-200 p-6">
         <h1 className="text-2xl font-bold">{list.title}</h1>
         {list.description && (
           <p className="mt-2 text-sm text-gray-500">{list.description}</p>
@@ -50,7 +50,7 @@ export default async function ListDetailPage({ params }: Props) {
             </Link>
           )}
           {city && (
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
               {city.name as string}
             </span>
           )}
@@ -68,18 +68,18 @@ export default async function ListDetailPage({ params }: Props) {
             const place = item.place as Record<string, unknown>;
             return (
               <Link key={item.id} href={`/place/${place.id}`} className="block">
-                <div className="flex gap-4 rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-medium dark:bg-gray-800">
+                <div className="flex gap-4 rounded-xl border border-gray-200 p-4 hover:bg-gray-50">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-medium">
                     {idx + 1}
                   </span>
                   <div className="flex-1">
                     <p className="font-medium">{place.name as string}</p>
                     <p className="text-sm text-gray-500">{place.address as string}</p>
-                    <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                    <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                       {place.category as string}
                     </span>
                     {item.note && (
-                      <p className="mt-2 text-sm italic text-gray-600 dark:text-gray-400">
+                      <p className="mt-2 text-sm italic text-gray-600">
                         &ldquo;{item.note}&rdquo;
                       </p>
                     )}

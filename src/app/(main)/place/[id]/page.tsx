@@ -37,13 +37,13 @@ export default async function PlacePage({ params }: Props) {
 
   return (
     <div>
-      <div className="border-b border-gray-200 p-6 dark:border-gray-800">
+      <div className="border-b border-gray-200 p-6">
         <h1 className="text-2xl font-bold">{place.name}</h1>
         {place.address && (
           <p className="mt-1 text-sm text-gray-500">{place.address}</p>
         )}
         <div className="mt-2 flex items-center gap-2">
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
             {place.category}
           </span>
           {city && (
@@ -69,7 +69,7 @@ export default async function PlacePage({ params }: Props) {
 
         <Link
           href={`/place/${params.id}/log`}
-          className="mt-4 inline-block rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          className="mt-4 inline-block rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
         >
           Log this place
         </Link>
@@ -84,7 +84,7 @@ export default async function PlacePage({ params }: Props) {
             {allLogs.map((log) => {
               const user = log.profiles as Record<string, unknown> | null;
               return (
-                <div key={log.id} className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                <div key={log.id} className="rounded-xl border border-gray-200 p-4">
                   <div className="flex items-center gap-3">
                     <Avatar
                       src={user?.avatar_url as string | null}
@@ -96,7 +96,7 @@ export default async function PlacePage({ params }: Props) {
                         {(user?.display_name || user?.username) as string}
                       </Link>
                       {log.is_local_log && (
-                        <span className="ml-2 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
+                        <span className="ml-2 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
                           local
                         </span>
                       )}
@@ -106,14 +106,14 @@ export default async function PlacePage({ params }: Props) {
                   {log.tags?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {log.tags.map((tag: string) => (
-                        <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                           {tag}
                         </span>
                       ))}
                     </div>
                   )}
                   {log.review && (
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="mt-2 text-sm text-gray-600">
                       {log.review}
                     </p>
                   )}

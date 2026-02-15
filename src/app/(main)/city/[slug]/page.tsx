@@ -60,7 +60,7 @@ export default async function CityPage({ params }: Props) {
 
   return (
     <div>
-      <div className="border-b border-gray-200 p-6 dark:border-gray-800">
+      <div className="border-b border-gray-200 p-6">
         <CityMap
           center={[city.latitude, city.longitude]}
           places={places || []}
@@ -97,7 +97,7 @@ export default async function CityPage({ params }: Props) {
 
       {/* Lists */}
       {lists && lists.length > 0 && (
-        <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+        <div className="border-t border-gray-200 p-4">
           <h2 className="mb-4 text-lg font-semibold">Lists</h2>
           <div className="space-y-3">
             {lists.map((list) => {
@@ -123,11 +123,11 @@ export default async function CityPage({ params }: Props) {
 
       {/* Locals */}
       {locals && locals.length > 0 && (
-        <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+        <div className="border-t border-gray-200 p-4">
           <h2 className="mb-4 text-lg font-semibold">Locals</h2>
           <div className="space-y-3">
             {locals.map((local) => (
-              <Link key={local.id} href={`/profile/${local.username}`} className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-gray-900">
+              <Link key={local.id} href={`/profile/${local.username}`} className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50">
                 <Avatar src={local.avatar_url} alt={local.display_name || local.username} />
                 <div>
                   <p className="font-medium">{local.display_name || local.username}</p>

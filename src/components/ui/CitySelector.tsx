@@ -38,20 +38,20 @@ export default function CitySelector({ value, onChange, className = "" }: CitySe
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-left text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white dark:focus:ring-white"
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-left text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
       >
         {selected ? `${selected.name}, ${selected.country}` : "Select your city"}
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+        <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
           <div className="p-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search cities..."
-              className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-800"
+              className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:border-black focus:outline-none"
               autoFocus
             />
           </div>
@@ -65,8 +65,8 @@ export default function CitySelector({ value, onChange, className = "" }: CitySe
                     setIsOpen(false);
                     setSearch("");
                   }}
-                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                    city.id === value ? "bg-gray-50 font-medium dark:bg-gray-800" : ""
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${
+                    city.id === value ? "bg-gray-50 font-medium" : ""
                   }`}
                 >
                   {city.name}, {city.country}
