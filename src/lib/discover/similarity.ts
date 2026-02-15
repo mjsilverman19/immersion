@@ -1,3 +1,5 @@
+import type { LogWithPlaceCategory } from "@/lib/types/queries";
+
 export interface LogData {
   place_id: string;
   rating: number;
@@ -7,15 +9,13 @@ export interface LogData {
 }
 
 /** Map a Supabase log row (with joined places) to LogData */
-export function mapLogRow(row: Record<string, unknown>): LogData {
+export function mapLogRow(row: LogWithPlaceCategory): LogData {
   return {
-    place_id: row.place_id as string,
-    rating: row.rating as number,
-    tags: (row.tags as string[]) || [],
-    vibe_tags: (row.vibe_tags as string[]) || [],
-    place_category:
-      ((row.places as Record<string, unknown>)?.category as string) ||
-      "experience",
+    place_id: row.place_id,
+    rating: row.rating,
+    tags: row.tags || [],
+    vibe_tags: row.vibe_tags || [],
+    place_category: row.places?.category || "experience",
   };
 }
 

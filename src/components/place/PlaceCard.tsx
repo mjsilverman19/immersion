@@ -9,7 +9,7 @@ interface PlaceCardProps {
 }
 
 export default function PlaceCard({ place, averageRating, logCount }: PlaceCardProps) {
-  const photos = (place as Record<string, unknown>).photo_urls as string[] | null;
+  const photos = place.photo_urls;
 
   return (
     <Link href={`/place/${place.id}`} className="block">

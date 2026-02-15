@@ -20,5 +20,5 @@ export default async function ProfileRedirect() {
     redirect(`/profile/${profile.username}`);
   }
 
-  redirect("/feed");
+  redirect("/onboarding");
 }

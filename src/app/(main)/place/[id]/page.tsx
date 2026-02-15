@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import RatingStars from "@/components/place/RatingStars";
+import type { PlaceWithCity, LogWithProfile } from "@/lib/types/queries";
 
 interface Props {
   params: { id: string };
@@ -25,16 +26,17 @@ export default async function PlacePage({ params }: Props) {
     .eq("place_id", params.id)
     .order("created_at", { ascending: false });
 
-  const allLogs = logs || [];
+  const allLogs = (logs || []) as unknown as LogWithProfile[];
   const totalLogs = allLogs.length;
   const avgRating = totalLogs > 0
-    ? allLogs.reduce((sum, l) => sum + (l.rating as number), 0) / totalLogs
+    ? allLogs.reduce((sum, l) => sum + l.rating, 0) / totalLogs
     : 0;
   const localLogs = allLogs.filter((l) => l.is_local_log).length;
   const localPct = totalLogs > 0 ? Math.round((localLogs / totalLogs) * 100) : 0;
 
-  const city = place.city as Record<string, unknown> | null;
-  const photos = (place.photo_urls as string[] | null) || [];
+  const typedPlace = place as unknown as PlaceWithCity;
+  const city = typedPlace.city;
+  const photos = place.photo_urls || [];
 
   return (
     <div className="bg-cream min-h-screen">
@@ -57,7 +59,7 @@ export default async function PlacePage({ params }: Props) {
           </span>
           {city && (
             <span className="text-xs text-ink-light">
-              {city.name as string}, {city.country as string}
+              {city.name}, {city.country}
             </span>
           )}
         </div>
@@ -96,18 +98,18 @@ export default async function PlacePage({ params }: Props) {
         ) : (
           <div className="space-y-3">
             {allLogs.map((log) => {
-              const user = log.profiles as Record<string, unknown> | null;
+              const author = log.profiles;
               return (
                 <div key={log.id} className="rounded-xl bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <Avatar
-                      src={user?.avatar_url as string | null}
-                      alt={(user?.display_name || user?.username) as string}
+                      src={author?.avatar_url ?? null}
+                      alt={author?.display_name || author?.username || ""}
                       size="sm"
                     />
                     <div className="flex-1">
-                      <Link href={`/profile/${user?.username}`} className="text-sm font-medium text-ink hover:underline">
-                        {(user?.display_name || user?.username) as string}
+                      <Link href={`/profile/${author?.username}`} className="text-sm font-medium text-ink hover:underline">
+                        {author?.display_name || author?.username}
                       </Link>
                       {log.is_local_log && (
                         <span className="ml-2 rounded-full bg-rust-light/30 px-1.5 py-0.5 text-[10px] font-medium text-rust">

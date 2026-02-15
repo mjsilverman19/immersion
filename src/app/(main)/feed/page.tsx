@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/supabase/auth-provider";
 import FeedItem from "@/components/feed/FeedItem";
 import { FeedSkeleton } from "@/components/ui/LoadingSkeleton";
+import type { FeedLogRow } from "@/lib/types/queries";
 
 type FeedMode = "following" | "discover";
 
@@ -72,30 +73,26 @@ export default function FeedPage() {
 
     const { data: logs } = await logQuery;
 
-    const entries: FeedEntry[] = (logs || []).map((log: Record<string, unknown>) => {
-      const profiles = log.profiles as Record<string, unknown> | null;
-      const places = log.places as Record<string, unknown> | null;
-      return {
-        type: "log" as const,
-        id: log.id as string,
-        user: {
-          username: (profiles?.username as string) || "",
-          display_name: (profiles?.display_name as string) || null,
-          avatar_url: (profiles?.avatar_url as string) || null,
-        },
-        created_at: log.created_at as string,
-        rating: log.rating as number,
-        tags: log.tags as string[],
-        vibe_tags: (log.vibe_tags as string[]) || [],
-        review: log.review as string | null,
-        place: places ? {
-          id: places.id as string,
-          name: places.name as string,
-          category: places.category as string,
-          city: places.city as { name: string } | null,
-        } : null,
-      };
-    });
+    const entries: FeedEntry[] = ((logs || []) as unknown as FeedLogRow[]).map((log) => ({
+      type: "log" as const,
+      id: log.id,
+      user: {
+        username: log.profiles?.username || "",
+        display_name: log.profiles?.display_name || null,
+        avatar_url: log.profiles?.avatar_url || null,
+      },
+      created_at: log.created_at,
+      rating: log.rating,
+      tags: log.tags,
+      vibe_tags: log.vibe_tags || [],
+      review: log.review,
+      place: log.places ? {
+        id: log.places.id,
+        name: log.places.name,
+        category: log.places.category,
+        city: log.places.city,
+      } : null,
+    }));
 
     if (entries.length < pageSize) {
       setHasMore(false);

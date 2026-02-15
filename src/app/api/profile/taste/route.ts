@@ -1,32 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { authenticated } from "@/lib/api/handler";
+import { tastePreferencesSchema } from "@/lib/validation/schemas";
 
-export async function POST(request: NextRequest) {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await request.json();
-  const { taste_preferences, category_preferences } = body;
-
-  if (!Array.isArray(taste_preferences)) {
-    return NextResponse.json(
-      { error: "taste_preferences must be an array" },
-      { status: 400 }
-    );
-  }
-
+export const POST = authenticated(tastePreferencesSchema, async (_req, { user, supabase }, body) => {
   const updateData: Record<string, string[]> = {
-    taste_preferences,
+    taste_preferences: body.taste_preferences,
   };
-  if (Array.isArray(category_preferences)) {
-    updateData.category_preferences = category_preferences;
+  if (body.category_preferences) {
+    updateData.category_preferences = body.category_preferences;
   }
 
   const { error } = await supabase
@@ -39,4 +20,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

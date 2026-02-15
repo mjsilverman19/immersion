@@ -1,22 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { authenticated } from "@/lib/api/handler";
+import { createFromGoogleSchema } from "@/lib/validation/schemas";
 import { CATEGORY_MAP } from "@/constants/tags";
+import type { GooglePlaceDetailsResponse } from "@/lib/types/google-places";
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { google_place_id } = body;
-
-  if (!google_place_id) {
-    return NextResponse.json({ error: "Missing google_place_id" }, { status: 400 });
-  }
-
-  const supabase = createClient();
-
+export const POST = authenticated(createFromGoogleSchema, async (_req, { supabase }, body) => {
   // Check if already exists
   const { data: existing } = await supabase
     .from("places")
     .select("*")
-    .eq("google_place_id", google_place_id)
+    .eq("google_place_id", body.google_place_id)
     .maybeSingle();
 
   if (existing) {
@@ -29,9 +22,9 @@ export async function POST(request: NextRequest) {
   }
 
   const detailsRes = await fetch(
-    `https://maps.googleapis.com/maps/api/place/details/json?place_id=${google_place_id}&fields=name,formatted_address,geometry,types,photos,url&key=${apiKey}`
+    `https://maps.googleapis.com/maps/api/place/details/json?place_id=${body.google_place_id}&fields=name,formatted_address,geometry,types,photos,url&key=${apiKey}`
   );
-  const detailsData = await detailsRes.json();
+  const detailsData: GooglePlaceDetailsResponse = await detailsRes.json();
   const result = detailsData.result;
 
   if (!result) {
@@ -70,14 +63,14 @@ export async function POST(request: NextRequest) {
   }
 
   const photoUrls = (result.photos || []).slice(0, 4).map(
-    (p: Record<string, unknown>) =>
+    (p) =>
       `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${p.photo_reference}&key=${apiKey}`
   );
 
   const { data: place, error } = await supabase
     .from("places")
     .insert({
-      google_place_id,
+      google_place_id: body.google_place_id,
       name: result.name,
       city_id: closestCity.id,
       address: result.formatted_address || null,
@@ -95,4 +88,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ place });
-}
+});

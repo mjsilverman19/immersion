@@ -63,5 +63,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Guard: redirect users without a completed profile to onboarding
+  const isOnboarding = request.nextUrl.pathname.startsWith("/onboarding");
+  if (user && isMainRoute && !isOnboarding) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile?.username) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

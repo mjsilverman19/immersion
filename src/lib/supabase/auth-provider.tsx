@@ -32,11 +32,13 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {},
 });
 
+// Singleton — browser client has no request-scoped state
+const supabase = createClient();
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileWithCity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
 
   const fetchProfile = useCallback(
     async (userId: string) => {
@@ -51,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile({ ...rest, city });
       }
     },
-    [supabase]
+    []
   );
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile]);
+  }, [fetchProfile]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

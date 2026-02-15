@@ -1,27 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { authenticated } from "@/lib/api/handler";
+import { updateProfileSchema } from "@/lib/validation/schemas";
 
-export async function PUT(request: NextRequest) {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await request.json();
-  const { display_name, bio, home_city_id, avatar_url } = body;
-
+export const PUT = authenticated(updateProfileSchema, async (_req, { user, supabase }, body) => {
   const { error } = await supabase
     .from("profiles")
     .update({
-      display_name: display_name || null,
-      bio: bio || null,
-      home_city_id: home_city_id || null,
-      avatar_url: avatar_url || null,
+      display_name: body.display_name,
+      bio: body.bio,
+      home_city_id: body.home_city_id,
+      avatar_url: body.avatar_url,
     })
     .eq("id", user.id);
 
@@ -30,4 +18,4 @@ export async function PUT(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
-}
+});

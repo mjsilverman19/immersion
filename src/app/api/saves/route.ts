@@ -1,68 +1,37 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authenticated } from "@/lib/api/handler";
+import { saveSchema } from "@/lib/validation/schemas";
 
-export async function POST(request: NextRequest) {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await request.json();
-  const { list_id } = body;
-
-  if (!list_id) {
-    return NextResponse.json(
-      { error: "list_id is required" },
-      { status: 400 }
-    );
-  }
-
+export const POST = authenticated(saveSchema, async (_req, { user, supabase }, body) => {
   const { error } = await supabase
     .from("saves")
-    .insert({ user_id: user.id, list_id });
+    .insert({ user_id: user.id, list_id: body.list_id });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
-}
+});
 
-export async function DELETE(request: NextRequest) {
-  const supabase = createClient();
+export const DELETE = authenticated(null, async (request, { user, supabase }) => {
+  const listId = request.nextUrl.searchParams.get("list_id");
+  const parsed = z.string().uuid().safeParse(listId);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const listId = searchParams.get("list_id");
-
-  if (!listId) {
-    return NextResponse.json(
-      { error: "list_id is required" },
-      { status: 400 }
-    );
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Valid list_id is required" }, { status: 400 });
   }
 
   const { error } = await supabase
     .from("saves")
     .delete()
     .eq("user_id", user.id)
-    .eq("list_id", listId);
+    .eq("list_id", parsed.data);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
-}
+});

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import MapClient from "./map-client";
 import type { Place } from "@/lib/types/database";
+import type { LogWithPlaceFull, ListItemWithPlaces, ProfileWithCityCoords } from "@/lib/types/queries";
 
 export default async function GlobalMapPage() {
   const supabase = createClient();
@@ -12,26 +13,34 @@ export default async function GlobalMapPage() {
 
   if (!user) redirect("/login");
 
+  // Parallelize independent queries
+  const [
+    { data: logs },
+    { data: lists },
+    { data: profile },
+  ] = await Promise.all([
+    supabase
+      .from("logs")
+      .select("*, places(*)")
+      .eq("user_id", user.id),
+    supabase
+      .from("lists")
+      .select("id")
+      .eq("user_id", user.id),
+    supabase
+      .from("profiles")
+      .select("*, city:cities!profiles_home_city_id_fkey(latitude, longitude)")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
   const placeMap = new Map<string, Place>();
 
-  // Fetch places the user has logged
-  const { data: logs } = await supabase
-    .from("logs")
-    .select("*, places(*)")
-    .eq("user_id", user.id);
-
   if (logs) {
-    for (const log of logs) {
-      const place = (log as Record<string, unknown>).places as Place | null;
-      if (place?.id) placeMap.set(place.id, place);
+    for (const log of logs as unknown as LogWithPlaceFull[]) {
+      if (log.places?.id) placeMap.set(log.places.id, log.places);
     }
   }
-
-  // Fetch places from the user's lists
-  const { data: lists } = await supabase
-    .from("lists")
-    .select("id")
-    .eq("user_id", user.id);
 
   if (lists && lists.length > 0) {
     const listIds = lists.map((l) => l.id);
@@ -41,26 +50,18 @@ export default async function GlobalMapPage() {
       .in("list_id", listIds);
 
     if (listItems) {
-      for (const item of listItems) {
-        const place = (item as Record<string, unknown>).places as Place | null;
-        if (place?.id) placeMap.set(place.id, place);
+      for (const item of listItems as unknown as ListItemWithPlaces[]) {
+        if (item.places?.id) placeMap.set(item.places.id, item.places);
       }
     }
   }
 
-  // Get user's home city for map center
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*, city:cities!profiles_home_city_id_fkey(latitude, longitude)")
-    .eq("id", user.id)
-    .single();
-
   const places = Array.from(placeMap.values());
 
+  const typedProfile = profile as unknown as ProfileWithCityCoords | null;
   let center: [number, number] | null = null;
-  if (profile?.city) {
-    const city = profile.city as { latitude: number; longitude: number };
-    center = [city.latitude, city.longitude];
+  if (typedProfile?.city) {
+    center = [typedProfile.city.latitude, typedProfile.city.longitude];
   } else if (places.length > 0) {
     center = [places[0].latitude, places[0].longitude];
   }

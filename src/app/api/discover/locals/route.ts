@@ -1,20 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { authenticated } from "@/lib/api/handler";
 import { computeSimilarity, mapLogRow } from "@/lib/discover/similarity";
+import type { LogWithPlaceCategory } from "@/lib/types/queries";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const cityId = searchParams.get("city_id");
+export const GET = authenticated(null, async (request, { user, supabase }) => {
+  const cityId = request.nextUrl.searchParams.get("city_id");
+  const parsed = z.string().uuid().safeParse(cityId);
 
-  if (!cityId) {
+  if (!parsed.success) {
     return NextResponse.json({ error: "city_id required" }, { status: 400 });
-  }
-
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Get current user's logs
@@ -23,13 +18,13 @@ export async function GET(request: NextRequest) {
     .select("place_id, rating, tags, vibe_tags, places!logs_place_id_fkey(category)")
     .eq("user_id", user.id);
 
-  const myLogData = (myLogs || []).map((l: Record<string, unknown>) => mapLogRow(l));
+  const myLogData = ((myLogs || []) as unknown as LogWithPlaceCategory[]).map((l) => mapLogRow(l));
 
   // Get locals in the city
   const { data: locals } = await supabase
     .from("profiles")
     .select("*")
-    .eq("home_city_id", cityId)
+    .eq("home_city_id", parsed.data)
     .neq("id", user.id)
     .order("contribution_count", { ascending: false })
     .limit(50);
@@ -46,7 +41,7 @@ export async function GET(request: NextRequest) {
         .select("place_id, rating, tags, vibe_tags, places!logs_place_id_fkey(category)")
         .eq("user_id", local.id);
 
-      const localLogData = (localLogs || []).map((l: Record<string, unknown>) => mapLogRow(l));
+      const localLogData = ((localLogs || []) as unknown as LogWithPlaceCategory[]).map((l) => mapLogRow(l));
 
       const similarity = myLogData.length > 0 && localLogData.length > 0
         ? computeSimilarity(myLogData, localLogData)
@@ -62,4 +57,4 @@ export async function GET(request: NextRequest) {
   results.sort((a, b) => b.taste_match - a.taste_match);
 
   return NextResponse.json({ locals: results });
-}
+});

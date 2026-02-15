@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Avatar from "@/components/ui/Avatar";
-import RatingStars from "@/components/place/RatingStars";
+import PlaceCardCompact from "@/components/place/PlaceCardCompact";
 import Link from "next/link";
+import type { ProfileWithCity, LogWithPlace, ListWithItems } from "@/lib/types/queries";
 
 interface Props {
   params: { username: string };
@@ -24,30 +25,34 @@ export default async function ProfilePage({ params }: Props) {
 
   if (!profile) notFound();
 
-  const { data: logs } = await supabase
-    .from("logs")
-    .select("*, place:places!logs_place_id_fkey(*, city:cities!places_city_id_fkey(name))")
-    .eq("user_id", profile.id)
-    .order("created_at", { ascending: false });
+  const [
+    { data: logs },
+    { data: lists },
+    { count: followerCount },
+    { data: { user } },
+  ] = await Promise.all([
+    supabase
+      .from("logs")
+      .select("*, place:places!logs_place_id_fkey(*, city:cities!places_city_id_fkey(name))")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("lists")
+      .select("*, list_items(id, place:places!list_items_place_id_fkey(photo_urls))")
+      .eq("user_id", profile.id)
+      .eq("is_public", true)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_id", profile.id),
+    supabase.auth.getUser(),
+  ]);
 
-  const { data: lists } = await supabase
-    .from("lists")
-    .select("*, list_items(id, place:places!list_items_place_id_fkey(photo_urls))")
-    .eq("user_id", profile.id)
-    .eq("is_public", true)
-    .order("created_at", { ascending: false });
-
-  const { count: followerCount } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("following_id", profile.id);
-
-  const city = profile.city as { name: string; country: string } | null;
-  const userLogs = logs || [];
-  const userLists = lists || [];
-
-  // Get logged-in user to check if viewing own profile
-  const { data: { user } } = await supabase.auth.getUser();
+  const typedProfile = profile as unknown as ProfileWithCity;
+  const city = typedProfile.city;
+  const userLogs = (logs || []) as unknown as LogWithPlace[];
+  const userLists = (lists || []) as unknown as ListWithItems[];
   const isOwnProfile = user?.id === profile.id;
 
   return (
@@ -106,9 +111,9 @@ export default async function ProfilePage({ params }: Props) {
           </h3>
           <div className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
             {userLists.map((list) => {
-              const items = (list.list_items || []) as Array<{ id: string; place: { photo_urls: string[] | null } | null }>;
+              const items = list.list_items || [];
               const photos = items
-                .map((item) => (item.place as { photo_urls: string[] | null } | null)?.photo_urls?.[0])
+                .map((item) => item.place?.photo_urls?.[0])
                 .filter(Boolean) as string[];
 
               return (
@@ -157,55 +162,18 @@ export default async function ProfilePage({ params }: Props) {
           <p className="text-sm text-ink-light">No logs yet</p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {userLogs.map((log: Record<string, unknown>) => {
-              const place = log.place as Record<string, unknown> | null;
-              const photos = (place?.photo_urls as string[] | null) || [];
-              const placeCity = place?.city as { name: string } | null;
-
-              return (
-                <Link key={log.id as string} href={`/place/${place?.id}`} className="block">
-                  <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-                    <div className="aspect-[4/3] w-full overflow-hidden bg-cream-dark">
-                      {photos[0] ? (
-                        <img
-                          src={photos[0]}
-                          alt={place?.name as string}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8 text-ink-light/30">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2.5">
-                      <p className="text-sm font-medium text-ink truncate">
-                        {place?.name as string}
-                      </p>
-                      {placeCity && (
-                        <p className="text-xs text-ink-light truncate">
-                          {placeCity.name}
-                        </p>
-                      )}
-                      <span className="mt-1 inline-block rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light capitalize">
-                        {(place?.category as string)?.replace("_", " ")}
-                      </span>
-                      <div className="mt-1.5">
-                        <RatingStars rating={log.rating as number} size="sm" />
-                      </div>
-                      {(log.review as string) && (
-                        <p className="mt-1.5 text-xs text-ink-light line-clamp-2">
-                          {log.review as string}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {userLogs.map((log) => (
+              <PlaceCardCompact
+                key={log.id}
+                placeId={log.place?.id || ""}
+                name={log.place?.name || ""}
+                cityName={log.place?.city?.name}
+                category={log.place?.category || "experience"}
+                rating={log.rating}
+                review={log.review}
+                photoUrl={log.place?.photo_urls?.[0]}
+              />
+            ))}
           </div>
         )}
       </div>

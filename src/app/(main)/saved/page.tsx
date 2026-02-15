@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ListCard from "@/components/list/ListCard";
+import type { SaveWithList } from "@/lib/types/queries";
 
 export default async function SavedPage() {
   const supabase = createClient();
@@ -14,9 +15,10 @@ export default async function SavedPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const savedLists = (saves || [])
-    .map((save: Record<string, unknown>) => save.list as Record<string, unknown> | null)
-    .filter(Boolean) as Record<string, unknown>[];
+  const typedSaves = (saves || []) as unknown as SaveWithList[];
+  const savedLists = typedSaves
+    .map((save) => save.list)
+    .filter((list): list is NonNullable<typeof list> => list !== null);
 
   return (
     <div className="bg-cream min-h-screen">
@@ -39,30 +41,24 @@ export default async function SavedPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {savedLists.map((list) => {
-              const user = list.profiles as Record<string, unknown> | null;
-              const city = list.city as { name: string } | null;
-              const items = list.list_items as Array<{ id: string }> | null;
-
-              return (
+            {savedLists.map((list) => (
                 <ListCard
-                  key={list.id as string}
+                  key={list.id}
                   list={{
-                    id: list.id as string,
-                    title: list.title as string,
-                    description: list.description as string | null,
-                    save_count: list.save_count as number,
-                    user: user ? {
-                      username: user.username as string,
-                      avatar_url: user.avatar_url as string | null,
-                      display_name: user.display_name as string | null,
+                    id: list.id,
+                    title: list.title,
+                    description: list.description,
+                    save_count: list.save_count,
+                    user: list.profiles ? {
+                      username: list.profiles.username,
+                      avatar_url: list.profiles.avatar_url,
+                      display_name: list.profiles.display_name,
                     } : null,
-                    city: city,
-                    itemCount: items?.length,
+                    city: list.city,
+                    itemCount: list.list_items?.length,
                   }}
                 />
-              );
-            })}
+            ))}
           </div>
         )}
       </div>

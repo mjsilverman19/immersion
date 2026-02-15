@@ -1,32 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { authenticated } from "@/lib/api/handler";
+import { createListSchema } from "@/lib/validation/schemas";
 
-export async function POST(request: NextRequest) {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await request.json();
-  const { title, description, city_id, is_public, items } = body;
-
-  if (!title) {
-    return NextResponse.json({ error: "Title is required" }, { status: 400 });
-  }
-
+export const POST = authenticated(createListSchema, async (_req, { user, supabase }, body) => {
   const { data: list, error } = await supabase
     .from("lists")
     .insert({
       user_id: user.id,
-      title,
-      description: description || null,
-      city_id: city_id || null,
-      is_public: is_public ?? true,
+      title: body.title,
+      description: body.description,
+      city_id: body.city_id,
+      is_public: body.is_public,
     })
     .select()
     .single();
@@ -38,27 +22,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (items && items.length > 0) {
-    const listItems = items.map(
-      (item: { place_id: string; note?: string }, idx: number) => ({
-        list_id: list.id,
-        place_id: item.place_id,
-        position: idx,
-        note: item.note || null,
-      })
-    );
+  if (body.items.length > 0) {
+    const listItems = body.items.map((item, idx) => ({
+      list_id: list.id,
+      place_id: item.place_id,
+      position: idx,
+      note: item.note,
+    }));
 
     const { error: itemsError } = await supabase
       .from("list_items")
       .insert(listItems);
 
     if (itemsError) {
-      return NextResponse.json(
-        { error: itemsError.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
   }
 
   return NextResponse.json({ success: true, list });
-}
+});

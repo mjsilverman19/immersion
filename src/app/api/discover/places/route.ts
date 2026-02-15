@@ -1,11 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { authenticated } from "@/lib/api/handler";
 import {
   computeSimilarity,
   type LogData,
 } from "@/lib/discover/similarity";
 import { CATEGORY_TO_PREFERENCE } from "@/lib/discover/categories";
 import type { PlaceCategory } from "@/lib/types/database";
+import type { LogWithPlaceCategory, DiscoverLog } from "@/lib/types/queries";
 
 interface PlaceResult {
   id: string;
@@ -25,22 +26,12 @@ interface PlaceResult {
   avg_rating: number;
 }
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const cityId = searchParams.get("city_id");
-  const category = searchParams.get("category") as PlaceCategory | null;
+export const GET = authenticated(null, async (request, { user, supabase }) => {
+  const cityId = request.nextUrl.searchParams.get("city_id");
+  const category = request.nextUrl.searchParams.get("category") as PlaceCategory | null;
 
   if (!cityId) {
     return NextResponse.json({ error: "city_id required" }, { status: 400 });
-  }
-
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Get user profile for taste/category preferences
@@ -83,39 +74,33 @@ export async function GET(request: NextRequest) {
     )
     .eq("user_id", user.id);
 
-  const myLogs: LogData[] = (myLogsRaw || []).map(
-    (l: Record<string, unknown>) => ({
-      place_id: l.place_id as string,
-      rating: l.rating as number,
-      tags: (l.tags as string[]) || [],
-      vibe_tags: (l.vibe_tags as string[]) || [],
-      place_category:
-        ((l.places as Record<string, unknown>)?.category as string) ||
-        "experience",
+  const myLogs: LogData[] = ((myLogsRaw || []) as unknown as LogWithPlaceCategory[]).map(
+    (l) => ({
+      place_id: l.place_id,
+      rating: l.rating,
+      tags: l.tags || [],
+      vibe_tags: l.vibe_tags || [],
+      place_category: l.places?.category || "experience",
     })
   );
 
   // Group city logs by place_id and by user_id
-  const logsByPlace = new Map<string, Record<string, unknown>[]>();
+  const typedCityLogs = (allCityLogs || []) as unknown as DiscoverLog[];
+  const logsByPlace = new Map<string, DiscoverLog[]>();
   const logsByUser = new Map<string, LogData[]>();
 
-  (allCityLogs || []).forEach((log: Record<string, unknown>) => {
-    const pid = log.place_id as string;
-    const uid = log.user_id as string;
+  typedCityLogs.forEach((log) => {
+    if (!logsByPlace.has(log.place_id)) logsByPlace.set(log.place_id, []);
+    logsByPlace.get(log.place_id)!.push(log);
 
-    if (!logsByPlace.has(pid)) logsByPlace.set(pid, []);
-    logsByPlace.get(pid)!.push(log);
-
-    if (uid !== user.id) {
-      if (!logsByUser.has(uid)) logsByUser.set(uid, []);
-      logsByUser.get(uid)!.push({
-        place_id: pid,
-        rating: log.rating as number,
-        tags: (log.tags as string[]) || [],
-        vibe_tags: (log.vibe_tags as string[]) || [],
-        place_category:
-          ((log.places as Record<string, unknown>)?.category as string) ||
-          "experience",
+    if (log.user_id !== user.id) {
+      if (!logsByUser.has(log.user_id)) logsByUser.set(log.user_id, []);
+      logsByUser.get(log.user_id)!.push({
+        place_id: log.place_id,
+        rating: log.rating,
+        tags: log.tags || [],
+        vibe_tags: log.vibe_tags || [],
+        place_category: log.places?.category || "experience",
       });
     }
   });
@@ -141,7 +126,7 @@ export async function GET(request: NextRequest) {
     const placeLogs = logsByPlace.get(place.id) || [];
     const logCount = placeLogs.length;
     const totalRating = placeLogs.reduce(
-      (sum, l) => sum + (l.rating as number),
+      (sum, l) => sum + l.rating,
       0
     );
     const avgRating = logCount > 0 ? totalRating / logCount : 0;
@@ -149,7 +134,7 @@ export async function GET(request: NextRequest) {
     // Aggregate vibe tags across all logs for this place
     const tagCounts = new Map<string, number>();
     placeLogs.forEach((l) => {
-      const vibeTags = (l.vibe_tags as string[]) || [];
+      const vibeTags = l.vibe_tags || [];
       vibeTags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) || 0) + 1));
     });
     const topVibeTags = [...tagCounts.entries()]
@@ -159,8 +144,7 @@ export async function GET(request: NextRequest) {
 
     // Local log percentage
     const localLogs = placeLogs.filter((l) => {
-      const logProfile = l.profiles as Record<string, unknown> | null;
-      return logProfile?.home_city_id === cityId;
+      return l.profiles?.home_city_id === cityId;
     });
     const localPct = logCount > 0 ? localLogs.length / logCount : 0;
 
@@ -172,11 +156,10 @@ export async function GET(request: NextRequest) {
       let weightedSum = 0;
       let weightTotal = 0;
       placeLogs.forEach((l) => {
-        const uid = l.user_id as string;
-        if (uid === user.id) return;
-        const sim = userSimilarities.get(uid) || 0;
+        if (l.user_id === user.id) return;
+        const sim = userSimilarities.get(l.user_id) || 0;
         if (sim > 0) {
-          weightedSum += sim * (l.rating as number);
+          weightedSum += sim * l.rating;
           weightTotal += sim;
         }
       });
@@ -187,11 +170,8 @@ export async function GET(request: NextRequest) {
         // Boost by volume — more similar users = more confidence
         const uniqueContributors = new Set(
           placeLogs
-            .filter((l) => {
-              const uid = l.user_id as string;
-              return uid !== user.id && (userSimilarities.get(uid) || 0) > 0;
-            })
-            .map((l) => l.user_id as string)
+            .filter((l) => l.user_id !== user.id && (userSimilarities.get(l.user_id) || 0) > 0)
+            .map((l) => l.user_id)
         ).size;
         score = score * (1 + Math.log2(Math.max(1, uniqueContributors)) * 0.1);
         score = Math.min(1, score);
@@ -200,12 +180,11 @@ export async function GET(request: NextRequest) {
         let bestSim = 0;
         let bestUser: string | null = null;
         placeLogs.forEach((l) => {
-          const uid = l.user_id as string;
-          if (uid === user.id) return;
-          const sim = userSimilarities.get(uid) || 0;
+          if (l.user_id === user.id) return;
+          const sim = userSimilarities.get(l.user_id) || 0;
           if (sim > bestSim) {
             bestSim = sim;
-            bestUser = uid;
+            bestUser = l.user_id;
           }
         });
         if (bestUser && bestSim > 0.3) {
@@ -220,7 +199,7 @@ export async function GET(request: NextRequest) {
       const placeTags = new Set(topVibeTags);
       // Also include all vibe tags from logs, not just top 3
       placeLogs.forEach((l) => {
-        ((l.vibe_tags as string[]) || []).forEach((t) => placeTags.add(t));
+        (l.vibe_tags || []).forEach((t) => placeTags.add(t));
       });
 
       const userTags = new Set(tastePrefs);
@@ -274,7 +253,7 @@ export async function GET(request: NextRequest) {
   results.sort((a, b) => b.score - a.score);
 
   return NextResponse.json({ places: results, mode });
-}
+});
 
 /** Quality heuristic: combines log count, average rating, and local percentage */
 function qualityScore(

@@ -14,15 +14,15 @@ export default function CitySelector({ value, onChange, className = "" }: CitySe
   const [cities, setCities] = useState<City[]>([]);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     const fetchCities = async () => {
+      const supabase = createClient();
       const { data } = await supabase.from("cities").select("*").order("name");
       if (data) setCities(data);
     };
     fetchCities();
-  }, [supabase]);
+  }, []);
 
   const filtered = cities.filter(
     (c) =>

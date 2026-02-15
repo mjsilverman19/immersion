@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Avatar from "@/components/ui/Avatar";
 import Link from "next/link";
 import SaveButton from "./SaveButton";
+import type { ListWithAuthor, ListItemWithPlaceFull } from "@/lib/types/queries";
 
 interface Props {
   params: { id: string };
@@ -25,8 +26,9 @@ export default async function ListDetailPage({ params }: Props) {
     .eq("list_id", params.id)
     .order("position");
 
-  const author = list.profiles as Record<string, unknown> | null;
-  const city = list.city as Record<string, unknown> | null;
+  const typedList = list as unknown as ListWithAuthor;
+  const author = typedList.profiles;
+  const city = typedList.city;
 
   return (
     <div className="bg-cream min-h-screen">
@@ -40,18 +42,18 @@ export default async function ListDetailPage({ params }: Props) {
           {author && (
             <Link href={`/profile/${author.username}`} className="flex items-center gap-2">
               <Avatar
-                src={author.avatar_url as string | null}
-                alt={(author.display_name || author.username) as string}
+                src={author.avatar_url}
+                alt={author.display_name || author.username}
                 size="sm"
               />
               <span className="text-sm font-medium text-ink">
-                {(author.display_name || author.username) as string}
+                {author.display_name || author.username}
               </span>
             </Link>
           )}
           {city && (
             <span className="rounded-full bg-cream-dark px-2 py-0.5 text-xs text-ink-light">
-              {city.name as string}
+              {city.name}
             </span>
           )}
         </div>
@@ -64,15 +66,15 @@ export default async function ListDetailPage({ params }: Props) {
 
       <div className="px-4 pb-24">
         <div className="space-y-3">
-          {(items || []).map((item, idx) => {
-            const place = item.place as Record<string, unknown>;
-            const photos = (place.photo_urls as string[] | null) || [];
+          {((items || []) as unknown as ListItemWithPlaceFull[]).map((item, idx) => {
+            const place = item.place;
+            const photos = place.photo_urls || [];
             return (
               <Link key={item.id} href={`/place/${place.id}`} className="block">
                 <div className="flex gap-3 rounded-xl bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
                   {photos[0] ? (
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-cream-dark">
-                      <img src={photos[0]} alt={place.name as string} className="h-full w-full object-cover" />
+                      <img src={photos[0]} alt={place.name} className="h-full w-full object-cover" />
                     </div>
                   ) : (
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-dark text-sm font-medium text-ink-light">
@@ -80,10 +82,10 @@ export default async function ListDetailPage({ params }: Props) {
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-ink truncate">{place.name as string}</p>
-                    <p className="text-sm text-ink-light truncate">{place.address as string}</p>
+                    <p className="font-medium text-ink truncate">{place.name}</p>
+                    <p className="text-sm text-ink-light truncate">{place.address}</p>
                     <span className="mt-1 inline-block rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light capitalize">
-                      {(place.category as string)?.replace("_", " ")}
+                      {place.category?.replace("_", " ")}
                     </span>
                     {item.note && (
                       <p className="mt-2 text-sm italic text-ink-light">

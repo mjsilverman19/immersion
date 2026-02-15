@@ -7,6 +7,7 @@ import CityMap from "@/components/map/CityMap";
 import RecommendedForYou from "@/components/city/RecommendedForYou";
 import LocalsLikeYou from "@/components/city/LocalsLikeYou";
 import Link from "next/link";
+import type { ListWithAuthor } from "@/lib/types/queries";
 
 interface Props {
   params: { slug: string };
@@ -23,10 +24,33 @@ export default async function CityPage({ params }: Props) {
 
   if (!city) notFound();
 
-  // Fetch user + profile for recommendation section
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Parallelize independent queries after city fetch
+  const [
+    { data: { user } },
+    { data: places },
+    { data: lists },
+    { data: locals },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("places")
+      .select("*")
+      .eq("city_id", city.id)
+      .limit(20),
+    supabase
+      .from("lists")
+      .select("*, profiles!lists_user_id_fkey(username, display_name, avatar_url)")
+      .eq("city_id", city.id)
+      .eq("is_public", true)
+      .order("save_count", { ascending: false })
+      .limit(10),
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("home_city_id", city.id)
+      .order("contribution_count", { ascending: false })
+      .limit(10),
+  ]);
 
   let hasTastePreferences = false;
   if (user) {
@@ -38,27 +62,6 @@ export default async function CityPage({ params }: Props) {
     hasTastePreferences =
       (profile?.taste_preferences?.length ?? 0) > 0;
   }
-
-  const { data: places } = await supabase
-    .from("places")
-    .select("*")
-    .eq("city_id", city.id)
-    .limit(20);
-
-  const { data: lists } = await supabase
-    .from("lists")
-    .select("*, profiles!lists_user_id_fkey(username, display_name, avatar_url)")
-    .eq("city_id", city.id)
-    .eq("is_public", true)
-    .order("save_count", { ascending: false })
-    .limit(10);
-
-  const { data: locals } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("home_city_id", city.id)
-    .order("contribution_count", { ascending: false })
-    .limit(10);
 
   return (
     <div className="bg-cream min-h-screen">
@@ -112,23 +115,20 @@ export default async function CityPage({ params }: Props) {
             Lists
           </h2>
           <div className="space-y-3">
-            {lists.map((list) => {
-              const listUser = list.profiles as Record<string, unknown> | null;
-              return (
+            {(lists as unknown as ListWithAuthor[]).map((list) => (
                 <ListCard
                   key={list.id}
                   list={{
                     ...list,
-                    user: listUser ? {
-                      username: listUser.username as string,
-                      avatar_url: listUser.avatar_url as string | null,
-                      display_name: listUser.display_name as string | null,
+                    user: list.profiles ? {
+                      username: list.profiles.username,
+                      avatar_url: list.profiles.avatar_url,
+                      display_name: list.profiles.display_name,
                     } : null,
                     city: { name: city.name },
                   }}
                 />
-              );
-            })}
+            ))}
           </div>
         </div>
       )}

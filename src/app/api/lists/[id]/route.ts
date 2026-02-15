@@ -1,23 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
+import { authenticated } from "@/lib/api/handler";
+import { updateListSchema } from "@/lib/validation/schemas";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const listId = params.id;
-  const body = await request.json();
-  const { title, description, city_id, items } = body;
+export const PUT = authenticated(updateListSchema, async (request: NextRequest, { user, supabase }, body) => {
+  const listId = request.nextUrl.pathname.split("/").pop()!;
 
   // Verify ownership
   const { data: list } = await supabase
@@ -33,9 +19,9 @@ export async function PUT(
   const { error: updateError } = await supabase
     .from("lists")
     .update({
-      title,
-      description: description || null,
-      city_id: city_id || null,
+      title: body.title,
+      description: body.description,
+      city_id: body.city_id,
     })
     .eq("id", listId);
 
@@ -43,32 +29,27 @@ export async function PUT(
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  if (items) {
+  if (body.items) {
     // Delete old items and insert new ones
     await supabase.from("list_items").delete().eq("list_id", listId);
 
-    if (items.length > 0) {
-      const listItems = items.map(
-        (item: { place_id: string; note?: string }, idx: number) => ({
-          list_id: listId,
-          place_id: item.place_id,
-          position: idx,
-          note: item.note || null,
-        })
-      );
+    if (body.items.length > 0) {
+      const listItems = body.items.map((item, idx) => ({
+        list_id: listId,
+        place_id: item.place_id,
+        position: idx,
+        note: item.note,
+      }));
 
       const { error: itemsError } = await supabase
         .from("list_items")
         .insert(listItems);
 
       if (itemsError) {
-        return NextResponse.json(
-          { error: itemsError.message },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: itemsError.message }, { status: 500 });
       }
     }
   }
 
   return NextResponse.json({ success: true });
-}
+});
