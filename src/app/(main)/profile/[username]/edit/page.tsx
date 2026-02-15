@@ -54,7 +54,14 @@ export default function EditProfilePage() {
     router.push(`/profile/${profile?.username}`);
   };
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="bg-cream min-h-screen p-4">
+        <h1 className="mb-6 font-serif text-2xl text-ink">Edit Profile</h1>
+        <p className="text-sm text-ink-light">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-cream min-h-screen p-4">
