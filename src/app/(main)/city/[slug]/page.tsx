@@ -4,6 +4,7 @@ import PlaceCard from "@/components/place/PlaceCard";
 import ListCard from "@/components/list/ListCard";
 import Avatar from "@/components/ui/Avatar";
 import CityMap from "@/components/map/CityMap";
+import RecommendedForYou from "@/components/city/RecommendedForYou";
 import LocalsLikeYou from "@/components/city/LocalsLikeYou";
 import Link from "next/link";
 
@@ -22,17 +23,26 @@ export default async function CityPage({ params }: Props) {
 
   if (!city) notFound();
 
+  // Fetch user + profile for recommendation section
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let hasTastePreferences = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("taste_preferences")
+      .eq("id", user.id)
+      .single();
+    hasTastePreferences =
+      (profile?.taste_preferences?.length ?? 0) > 0;
+  }
+
   const { data: places } = await supabase
     .from("places")
     .select("*")
     .eq("city_id", city.id)
-    .limit(20);
-
-  const { data: logs } = await supabase
-    .from("logs")
-    .select("*, profiles!logs_user_id_fkey(username, display_name, avatar_url), places!logs_place_id_fkey(name, category)")
-    .eq("places.city_id", city.id)
-    .order("created_at", { ascending: false })
     .limit(20);
 
   const { data: lists } = await supabase
@@ -49,15 +59,6 @@ export default async function CityPage({ params }: Props) {
     .eq("home_city_id", city.id)
     .order("contribution_count", { ascending: false })
     .limit(10);
-
-  // Compute place stats
-  const placeStats: Record<string, { total: number; sum: number }> = {};
-  (logs || []).forEach((log: Record<string, unknown>) => {
-    const pid = log.place_id as string;
-    if (!placeStats[pid]) placeStats[pid] = { total: 0, sum: 0 };
-    placeStats[pid].total++;
-    placeStats[pid].sum += log.rating as number;
-  });
 
   return (
     <div className="bg-cream min-h-screen">
@@ -78,26 +79,26 @@ export default async function CityPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Recommended for You (auth-gated client component) */}
+      {user && (
+        <RecommendedForYou
+          cityId={city.id}
+          hasTastePreferences={hasTastePreferences}
+        />
+      )}
+
       {/* Locals Like You — taste matching */}
       <LocalsLikeYou cityId={city.id} />
 
-      {/* Top Places */}
+      {/* All Places */}
       <div className="px-4 pb-6">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
-          Top Places
+          All Places
         </h2>
         <div className="space-y-3">
-          {(places || []).map((place) => {
-            const stats = placeStats[place.id];
-            return (
-              <PlaceCard
-                key={place.id}
-                place={place}
-                averageRating={stats ? stats.sum / stats.total : undefined}
-                logCount={stats?.total}
-              />
-            );
-          })}
+          {(places || []).map((place) => (
+            <PlaceCard key={place.id} place={place} />
+          ))}
           {(!places || places.length === 0) && (
             <p className="text-sm text-ink-light">No places logged in this city yet</p>
           )}
