@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/supabase/auth-provider";
 import { useToast } from "@/components/ui/Toast";
 import CitySelector from "@/components/ui/CitySelector";
 import PlaceSearch from "@/components/place/PlaceSearch";
@@ -23,7 +22,6 @@ export default function EditListPage() {
   const [items, setItems] = useState<ListItemDraft[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const { profile } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
@@ -86,29 +84,28 @@ export default function EditListPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || items.length === 0) return;
+    if (items.length === 0) return;
     setLoading(true);
 
-    await supabase
-      .from("lists")
-      .update({
+    const res = await fetch(`/api/lists/${listId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         title,
-        description: description || null,
-        city_id: cityId || null,
-      })
-      .eq("id", listId);
+        description,
+        city_id: cityId,
+        items: items.map((item) => ({
+          place_id: item.place.id,
+          note: item.note,
+        })),
+      }),
+    });
 
-    // Delete old items and insert new ones
-    await supabase.from("list_items").delete().eq("list_id", listId);
-
-    const listItems = items.map((item, idx) => ({
-      list_id: listId,
-      place_id: item.place.id,
-      position: idx,
-      note: item.note || null,
-    }));
-
-    await supabase.from("list_items").insert(listItems);
+    if (!res.ok) {
+      toast("Failed to update list");
+      setLoading(false);
+      return;
+    }
 
     toast("List updated!");
     router.push(`/list/${listId}`);

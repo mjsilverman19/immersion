@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/supabase/auth-provider";
 import { useToast } from "@/components/ui/Toast";
 import CitySelector from "@/components/ui/CitySelector";
 import PlaceSearch from "@/components/place/PlaceSearch";
@@ -20,9 +18,7 @@ export default function NewListPage() {
   const [cityId, setCityId] = useState("");
   const [items, setItems] = useState<ListItemDraft[]>([]);
   const [loading, setLoading] = useState(false);
-  const { profile } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
   const { toast } = useToast();
 
   const addPlace = (place: Place) => {
@@ -50,37 +46,33 @@ export default function NewListPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || items.length === 0) return;
+    if (items.length === 0) return;
     setLoading(true);
 
-    const { data: list, error } = await supabase
-      .from("lists")
-      .insert({
-        user_id: profile.id,
+    const res = await fetch("/api/lists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         title,
-        description: description || null,
-        city_id: cityId || null,
+        description,
+        city_id: cityId,
         is_public: true,
-      })
-      .select()
-      .single();
+        items: items.map((item) => ({
+          place_id: item.place.id,
+          note: item.note,
+        })),
+      }),
+    });
 
-    if (error || !list) {
+    if (!res.ok) {
+      toast("Failed to create list");
       setLoading(false);
       return;
     }
 
-    const listItems = items.map((item, idx) => ({
-      list_id: list.id,
-      place_id: item.place.id,
-      position: idx,
-      note: item.note || null,
-    }));
-
-    await supabase.from("list_items").insert(listItems);
-
+    const data = await res.json();
     toast("List created!");
-    router.push(`/list/${list.id}`);
+    router.push(`/list/${data.list.id}`);
   };
 
   return (

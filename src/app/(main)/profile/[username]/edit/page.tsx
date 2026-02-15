@@ -3,21 +3,19 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/supabase/auth-provider";
 import CitySelector from "@/components/ui/CitySelector";
 import AvatarUpload from "@/components/ui/AvatarUpload";
 import { useToast } from "@/components/ui/Toast";
 
 export default function EditProfilePage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [homeCityId, setHomeCityId] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,18 +29,24 @@ export default function EditProfilePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     setLoading(true);
 
-    await supabase
-      .from("profiles")
-      .update({
-        display_name: displayName || null,
-        bio: bio || null,
-        home_city_id: homeCityId || null,
-        avatar_url: avatarUrl || null,
-      })
-      .eq("id", user.id);
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: displayName,
+        bio,
+        home_city_id: homeCityId,
+        avatar_url: avatarUrl,
+      }),
+    });
+
+    if (!res.ok) {
+      toast("Failed to update profile");
+      setLoading(false);
+      return;
+    }
 
     await refreshProfile();
     toast("Profile updated");
@@ -57,13 +61,10 @@ export default function EditProfilePage() {
       <h1 className="mb-6 text-2xl font-bold">Edit Profile</h1>
 
       <form onSubmit={handleSave} className="space-y-6">
-        {user && (
-          <AvatarUpload
-            currentUrl={avatarUrl || null}
-            userId={user.id}
-            onUpload={setAvatarUrl}
-          />
-        )}
+        <AvatarUpload
+          currentUrl={avatarUrl || null}
+          onUpload={setAvatarUrl}
+        />
 
         <div>
           <label htmlFor="displayName" className="mb-1 block text-sm font-medium">

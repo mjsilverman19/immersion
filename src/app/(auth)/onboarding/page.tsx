@@ -86,13 +86,10 @@ export default function OnboardingPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {userId && (
-          <AvatarUpload
-            currentUrl={avatarUrl || null}
-            userId={userId}
-            onUpload={setAvatarUrl}
-          />
-        )}
+        <AvatarUpload
+          currentUrl={avatarUrl || null}
+          onUpload={setAvatarUrl}
+        />
 
         <div>
           <label htmlFor="username" className="mb-1 block text-sm font-medium">

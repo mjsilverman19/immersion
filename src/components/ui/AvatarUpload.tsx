@@ -1,20 +1,17 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import Avatar from "./Avatar";
 
 interface AvatarUploadProps {
   currentUrl?: string | null;
-  userId: string;
   onUpload: (url: string) => void;
 }
 
-export default function AvatarUpload({ currentUrl, userId, onUpload }: AvatarUploadProps) {
+export default function AvatarUpload({ currentUrl, onUpload }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const supabase = createClient();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -23,20 +20,21 @@ export default function AvatarUpload({ currentUrl, userId, onUpload }: AvatarUpl
     setUploading(true);
     setPreviewUrl(URL.createObjectURL(file));
 
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${userId}/avatar.${fileExt}`;
+    const formData = new FormData();
+    formData.append("file", file);
 
-    const { error } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file, { upsert: true });
+    const res = await fetch("/api/profile/avatar", {
+      method: "POST",
+      body: formData,
+    });
 
-    if (error) {
+    if (!res.ok) {
       setUploading(false);
       return;
     }
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
-    onUpload(data.publicUrl);
+    const data = await res.json();
+    onUpload(data.url);
     setUploading(false);
   };
 
