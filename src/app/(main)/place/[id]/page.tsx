@@ -39,16 +39,9 @@ export default async function PlacePage({ params }: Props) {
   return (
     <div className="bg-cream min-h-screen">
       {/* Photo hero */}
-      {photos.length > 0 ? (
+      {photos.length > 0 && (
         <div className="aspect-[16/9] w-full overflow-hidden bg-cream-dark">
           <img src={photos[0]} alt={place.name} className="h-full w-full object-cover" />
-        </div>
-      ) : (
-        <div className="flex aspect-[16/9] w-full items-center justify-center bg-cream-dark">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="h-12 w-12 text-ink-light/30">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-          </svg>
         </div>
       )}
 
