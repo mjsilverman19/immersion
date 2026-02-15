@@ -34,20 +34,36 @@ export default async function PlacePage({ params }: Props) {
   const localPct = totalLogs > 0 ? Math.round((localLogs / totalLogs) * 100) : 0;
 
   const city = place.city as Record<string, unknown> | null;
+  const photos = (place.photo_urls as string[] | null) || [];
 
   return (
-    <div>
-      <div className="border-b border-gray-200 p-6">
-        <h1 className="text-2xl font-bold">{place.name}</h1>
+    <div className="bg-cream min-h-screen">
+      {/* Photo hero */}
+      {photos.length > 0 ? (
+        <div className="aspect-[16/9] w-full overflow-hidden bg-cream-dark">
+          <img src={photos[0]} alt={place.name} className="h-full w-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex aspect-[16/9] w-full items-center justify-center bg-cream-dark">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="h-12 w-12 text-ink-light/30">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+          </svg>
+        </div>
+      )}
+
+      {/* Place info */}
+      <div className="px-4 pt-5 pb-4">
+        <h1 className="font-serif text-2xl text-ink">{place.name}</h1>
         {place.address && (
-          <p className="mt-1 text-sm text-gray-500">{place.address}</p>
+          <p className="mt-1 text-sm text-ink-light">{place.address}</p>
         )}
         <div className="mt-2 flex items-center gap-2">
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-            {place.category}
+          <span className="rounded-full bg-cream-dark px-2.5 py-0.5 text-xs text-ink-light capitalize">
+            {place.category?.replace("_", " ")}
           </span>
           {city && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-ink-light">
               {city.name as string}, {city.country as string}
             </span>
           )}
@@ -57,34 +73,39 @@ export default async function PlacePage({ params }: Props) {
           <div className="mt-4 flex items-center gap-4">
             <div>
               <RatingStars rating={Math.round(avgRating)} size="md" />
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs text-ink-light">
                 {avgRating.toFixed(1)} avg ({totalLogs} logs)
               </p>
             </div>
-            <div className="text-xs text-gray-500">
-              {localPct}% local logs
-            </div>
+            {localLogs > 0 && (
+              <span className="rounded-full bg-cream-dark px-2 py-0.5 text-xs text-ink-light">
+                {localPct}% local
+              </span>
+            )}
           </div>
         )}
 
         <Link
           href={`/place/${params.id}/log`}
-          className="mt-4 inline-block rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          className="mt-5 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-medium text-cream hover:bg-ink/90"
         >
           Log this place
         </Link>
       </div>
 
-      <div className="p-4">
-        <h2 className="mb-4 text-lg font-semibold">Logs</h2>
+      {/* Logs section */}
+      <div className="px-4 pb-24">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
+          Logs
+        </h2>
         {allLogs.length === 0 ? (
-          <p className="text-sm text-gray-500">No logs yet. Be the first!</p>
+          <p className="text-sm text-ink-light">No logs yet. Be the first!</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {allLogs.map((log) => {
               const user = log.profiles as Record<string, unknown> | null;
               return (
-                <div key={log.id} className="rounded-xl border border-gray-200 p-4">
+                <div key={log.id} className="rounded-xl bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <Avatar
                       src={user?.avatar_url as string | null}
@@ -92,11 +113,11 @@ export default async function PlacePage({ params }: Props) {
                       size="sm"
                     />
                     <div className="flex-1">
-                      <Link href={`/profile/${user?.username}`} className="text-sm font-medium hover:underline">
+                      <Link href={`/profile/${user?.username}`} className="text-sm font-medium text-ink hover:underline">
                         {(user?.display_name || user?.username) as string}
                       </Link>
                       {log.is_local_log && (
-                        <span className="ml-2 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                        <span className="ml-2 rounded-full bg-rust-light/30 px-1.5 py-0.5 text-[10px] font-medium text-rust">
                           local
                         </span>
                       )}
@@ -106,14 +127,14 @@ export default async function PlacePage({ params }: Props) {
                   {log.tags?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {log.tags.map((tag: string) => (
-                        <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                        <span key={tag} className="rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light">
                           {tag}
                         </span>
                       ))}
                     </div>
                   )}
                   {log.review && (
-                    <p className="mt-2 text-sm text-gray-600">
+                    <p className="mt-2 text-sm text-ink-light">
                       {log.review}
                     </p>
                   )}

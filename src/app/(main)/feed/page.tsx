@@ -125,9 +125,9 @@ export default function FeedPage() {
 
   if (loading && items.length === 0) {
     return (
-      <div>
-        <div className="sticky top-0 z-10 flex gap-2 border-b border-gray-200 bg-white p-4">
-          <button className="rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white">
+      <div className="bg-cream min-h-screen">
+        <div className="sticky top-0 z-10 flex gap-2 border-b border-cream-dark bg-cream/80 backdrop-blur-sm p-4">
+          <button className="rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-cream">
             {mode === "following" ? "Following" : "Discover"}
           </button>
         </div>
@@ -137,14 +137,14 @@ export default function FeedPage() {
   }
 
   return (
-    <div>
-      <div className="sticky top-0 z-10 flex gap-2 border-b border-gray-200 bg-white p-4">
+    <div className="bg-cream min-h-screen">
+      <div className="sticky top-0 z-10 flex gap-2 border-b border-cream-dark bg-cream/80 backdrop-blur-sm p-4">
         <button
           onClick={() => setMode("following")}
           className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
             mode === "following"
-              ? "bg-black text-white"
-              : "bg-gray-100 text-gray-700"
+              ? "bg-ink text-cream"
+              : "bg-cream-dark text-ink-light"
           }`}
         >
           Following
@@ -153,18 +153,18 @@ export default function FeedPage() {
           onClick={() => setMode("discover")}
           className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
             mode === "discover"
-              ? "bg-black text-white"
-              : "bg-gray-100 text-gray-700"
+              ? "bg-ink text-cream"
+              : "bg-cream-dark text-ink-light"
           }`}
         >
           Discover
         </button>
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="space-y-3 p-4 pb-24">
         {items.length === 0 && (
           <div className="py-12 text-center">
-            <p className="text-gray-500">
+            <p className="text-ink-light">
               {mode === "following"
                 ? "Follow some locals to see their activity here."
                 : "No activity yet. Be the first to log a place!"}
@@ -180,7 +180,7 @@ export default function FeedPage() {
           <button
             onClick={loadMore}
             disabled={loading}
-            className="w-full rounded-lg bg-gray-100 py-3 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            className="w-full rounded-full bg-cream-dark py-3 text-sm font-medium text-ink-light hover:bg-cream-dark/80 disabled:opacity-50"
           >
             {loading ? "Loading..." : "Load more"}
           </button>

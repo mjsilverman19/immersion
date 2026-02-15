@@ -57,8 +57,8 @@ export default function EditProfilePage() {
   if (!profile) return null;
 
   return (
-    <div className="p-4">
-      <h1 className="mb-6 text-2xl font-bold">Edit Profile</h1>
+    <div className="bg-cream min-h-screen p-4">
+      <h1 className="mb-6 font-serif text-2xl text-ink">Edit Profile</h1>
 
       <form onSubmit={handleSave} className="space-y-6">
         <AvatarUpload
@@ -67,7 +67,7 @@ export default function EditProfilePage() {
         />
 
         <div>
-          <label htmlFor="displayName" className="mb-1 block text-sm font-medium">
+          <label htmlFor="displayName" className="mb-1 block text-sm font-medium text-ink">
             Display Name
           </label>
           <input
@@ -75,12 +75,12 @@ export default function EditProfilePage() {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+            className="w-full rounded-xl border border-cream-dark bg-white px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
           />
         </div>
 
         <div>
-          <label htmlFor="bio" className="mb-1 block text-sm font-medium">
+          <label htmlFor="bio" className="mb-1 block text-sm font-medium text-ink">
             Bio
           </label>
           <textarea
@@ -88,7 +88,7 @@ export default function EditProfilePage() {
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+            className="w-full rounded-xl border border-cream-dark bg-white px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
           />
         </div>
 
@@ -97,26 +97,26 @@ export default function EditProfilePage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-black py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="w-full rounded-full bg-ink py-2.5 text-sm font-medium text-cream hover:bg-ink/90 disabled:opacity-50"
         >
           {loading ? "Saving..." : "Save changes"}
         </button>
       </form>
 
-      <div className="mt-8 border-t border-gray-200 pt-6">
-        <h2 className="text-sm font-medium text-gray-500">Import Data</h2>
+      <div className="mt-8 border-t border-cream-dark pt-6">
+        <h2 className="text-sm font-medium text-ink-light">Import Data</h2>
         <Link
           href="/import"
-          className="mt-3 flex items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50"
+          className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm hover:shadow-md"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cream-dark">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="h-4 w-4"
+              className="h-4 w-4 text-ink-light"
             >
               <path
                 strokeLinecap="round"
@@ -126,8 +126,8 @@ export default function EditProfilePage() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium">Import from Google Maps</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-medium text-ink">Import from Google Maps</p>
+            <p className="text-xs text-ink-light">
               Upload your Google Takeout saved places
             </p>
           </div>

@@ -68,15 +68,15 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold">{place.name}</h2>
-        <p className="text-sm text-gray-500">{place.address}</p>
-        <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-          {place.category}
+        <h2 className="font-serif text-xl text-ink">{place.name}</h2>
+        <p className="text-sm text-ink-light">{place.address}</p>
+        <span className="mt-1 inline-block rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light capitalize">
+          {place.category?.replace("_", " ")}
         </span>
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium">Rating</label>
+        <label className="mb-2 block text-sm font-medium text-ink">Rating</label>
         <RatingStars rating={rating} onChange={setRating} size="lg" interactive />
       </div>
 
@@ -87,8 +87,8 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
       />
 
       <div>
-        <label htmlFor="review" className="mb-1 block text-sm font-medium">
-          Review <span className="text-gray-400">(optional)</span>
+        <label htmlFor="review" className="mb-1 block text-sm font-medium text-ink">
+          Review <span className="text-ink-light">(optional)</span>
         </label>
         <textarea
           id="review"
@@ -96,10 +96,10 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
           onChange={(e) => setReview(e.target.value)}
           maxLength={2000}
           rows={4}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+          className="w-full rounded-xl border border-cream-dark bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-light/50 focus:border-ink focus:outline-none"
           placeholder="What made this place special?"
         />
-        <p className="mt-1 text-right text-xs text-gray-400">
+        <p className="mt-1 text-right text-xs text-ink-light">
           {review.length}/2000
         </p>
       </div>
@@ -107,7 +107,7 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
       <button
         type="submit"
         disabled={loading || rating === 0}
-        className="w-full rounded-lg bg-black py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        className="w-full rounded-full bg-ink py-3 text-sm font-medium text-cream hover:bg-ink/90 disabled:opacity-50"
       >
         {loading ? "Saving..." : existingLog ? "Update log" : "Log it"}
       </button>

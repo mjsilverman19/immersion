@@ -22,10 +22,10 @@ interface ListCardProps {
 export default function ListCard({ list }: ListCardProps) {
   return (
     <Link href={`/list/${list.id}`} className="block">
-      <div className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50">
-        <h3 className="font-medium">{list.title}</h3>
+      <div className="rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+        <h3 className="font-medium text-ink">{list.title}</h3>
         {list.description && (
-          <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+          <p className="mt-1 text-sm text-ink-light line-clamp-2">
             {list.description}
           </p>
         )}
@@ -38,13 +38,13 @@ export default function ListCard({ list }: ListCardProps) {
                   alt={list.user.display_name || list.user.username}
                   size="sm"
                 />
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-ink-light">
                   {list.user.display_name || list.user.username}
                 </span>
               </>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-3 text-xs text-ink-light">
             {list.city && <span>{list.city.name}</span>}
             {list.itemCount !== undefined && <span>{list.itemCount} places</span>}
             <span>{list.save_count} saves</span>

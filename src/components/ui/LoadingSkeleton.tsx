@@ -1,14 +1,14 @@
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded-md bg-gray-200 ${className}`}
+      className={`animate-pulse rounded-md bg-cream-dark ${className}`}
     />
   );
 }
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-gray-200 p-4">
+    <div className="rounded-xl bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-full" />
         <div className="flex-1">
@@ -24,7 +24,7 @@ export function CardSkeleton() {
 
 export function FeedSkeleton() {
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-3 p-4">
       {Array.from({ length: 5 }).map((_, i) => (
         <CardSkeleton key={i} />
       ))}

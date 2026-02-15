@@ -33,7 +33,7 @@ export default function LogFormWrapper({ place }: { place: Place }) {
     fetchLog();
   }, [user, place.id, supabase]);
 
-  if (!loaded) return <div className="py-8 text-center text-sm text-gray-500">Loading...</div>;
+  if (!loaded) return <div className="py-8 text-center text-sm text-ink-light">Loading...</div>;
 
   return (
     <ToastProvider>

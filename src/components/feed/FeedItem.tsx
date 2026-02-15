@@ -46,7 +46,7 @@ export default function FeedItem({ item }: FeedItemProps) {
 
   return (
     <Link href={href} className="block">
-      <div className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50">
+      <div className="rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
         <div className="flex items-center gap-3">
           <Avatar
             src={item.user.avatar_url}
@@ -54,10 +54,10 @@ export default function FeedItem({ item }: FeedItemProps) {
             size="md"
           />
           <div className="flex-1">
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium text-ink">
               {item.user.display_name || item.user.username}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-light">
               {item.type === "log" ? "logged" : "created a list"}{" "}
               &middot; {timeAgo(item.created_at)}
             </p>
@@ -68,13 +68,13 @@ export default function FeedItem({ item }: FeedItemProps) {
           <div className="mt-3">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-medium">{item.place.name}</p>
+                <p className="font-medium text-ink">{item.place.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                    {item.place.category}
+                  <span className="rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light capitalize">
+                    {item.place.category?.replace("_", " ")}
                   </span>
                   {item.place.city && (
-                    <span className="text-xs text-gray-500">{item.place.city.name}</span>
+                    <span className="text-xs text-ink-light">{item.place.city.name}</span>
                   )}
                 </div>
               </div>
@@ -85,7 +85,7 @@ export default function FeedItem({ item }: FeedItemProps) {
                 {item.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                    className="rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light"
                   >
                     {tag}
                   </span>
@@ -93,7 +93,7 @@ export default function FeedItem({ item }: FeedItemProps) {
               </div>
             )}
             {item.review && (
-              <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+              <p className="mt-2 text-sm text-ink-light line-clamp-2">
                 {item.review}
               </p>
             )}
@@ -102,9 +102,9 @@ export default function FeedItem({ item }: FeedItemProps) {
 
         {item.type === "list" && (
           <div className="mt-3">
-            <p className="font-medium">{item.listTitle}</p>
+            <p className="font-medium text-ink">{item.listTitle}</p>
             {item.itemCount !== undefined && (
-              <p className="mt-0.5 text-sm text-gray-500">
+              <p className="mt-0.5 text-sm text-ink-light">
                 {item.itemCount} places
               </p>
             )}

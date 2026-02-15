@@ -29,11 +29,11 @@ export default async function ListDetailPage({ params }: Props) {
   const city = list.city as Record<string, unknown> | null;
 
   return (
-    <div>
-      <div className="border-b border-gray-200 p-6">
-        <h1 className="text-2xl font-bold">{list.title}</h1>
+    <div className="bg-cream min-h-screen">
+      <div className="px-4 pt-5 pb-4">
+        <h1 className="font-serif text-2xl text-ink">{list.title}</h1>
         {list.description && (
-          <p className="mt-2 text-sm text-gray-500">{list.description}</p>
+          <p className="mt-2 text-sm text-ink-light">{list.description}</p>
         )}
 
         <div className="mt-4 flex items-center gap-3">
@@ -44,42 +44,49 @@ export default async function ListDetailPage({ params }: Props) {
                 alt={(author.display_name || author.username) as string}
                 size="sm"
               />
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium text-ink">
                 {(author.display_name || author.username) as string}
               </span>
             </Link>
           )}
           {city && (
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+            <span className="rounded-full bg-cream-dark px-2 py-0.5 text-xs text-ink-light">
               {city.name as string}
             </span>
           )}
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <span className="text-sm text-gray-500">{list.save_count} saves</span>
+          <span className="text-sm text-ink-light">{list.save_count} saves</span>
           <SaveButton listId={list.id} />
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="space-y-4">
+      <div className="px-4 pb-24">
+        <div className="space-y-3">
           {(items || []).map((item, idx) => {
             const place = item.place as Record<string, unknown>;
+            const photos = (place.photo_urls as string[] | null) || [];
             return (
               <Link key={item.id} href={`/place/${place.id}`} className="block">
-                <div className="flex gap-4 rounded-xl border border-gray-200 p-4 hover:bg-gray-50">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-medium">
-                    {idx + 1}
-                  </span>
-                  <div className="flex-1">
-                    <p className="font-medium">{place.name as string}</p>
-                    <p className="text-sm text-gray-500">{place.address as string}</p>
-                    <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                      {place.category as string}
+                <div className="flex gap-3 rounded-xl bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+                  {photos[0] ? (
+                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-cream-dark">
+                      <img src={photos[0]} alt={place.name as string} className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream-dark text-sm font-medium text-ink-light">
+                      {idx + 1}
+                    </span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-ink truncate">{place.name as string}</p>
+                    <p className="text-sm text-ink-light truncate">{place.address as string}</p>
+                    <span className="mt-1 inline-block rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light capitalize">
+                      {(place.category as string)?.replace("_", " ")}
                     </span>
                     {item.note && (
-                      <p className="mt-2 text-sm italic text-gray-600">
+                      <p className="mt-2 text-sm italic text-ink-light">
                         &ldquo;{item.note}&rdquo;
                       </p>
                     )}

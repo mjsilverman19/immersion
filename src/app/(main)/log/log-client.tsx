@@ -40,7 +40,7 @@ export default function LogClient() {
   if (creating) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-gray-400">Adding place...</p>
+        <p className="text-sm text-ink-light">Adding place...</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function LogClient() {
         <button
           type="button"
           onClick={() => setSelectedPlace(null)}
-          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-black"
+          className="mb-4 flex items-center gap-1 text-sm text-ink-light hover:text-ink"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -65,7 +65,7 @@ export default function LogClient() {
 
   return (
     <div>
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-ink-light">
         Search for a restaurant, cafe, bar, or any place you want to log.
       </p>
       <PlaceSearch onSelect={handleSelect} />

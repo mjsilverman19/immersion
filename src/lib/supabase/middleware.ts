@@ -43,7 +43,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/lists") ||
     request.nextUrl.pathname.startsWith("/import") ||
     request.nextUrl.pathname.startsWith("/map") ||
-    request.nextUrl.pathname.startsWith("/log");
+    request.nextUrl.pathname.startsWith("/log") ||
+    request.nextUrl.pathname.startsWith("/saved");
 
   if (!user && isMainRoute) {
     const url = request.nextUrl.clone();

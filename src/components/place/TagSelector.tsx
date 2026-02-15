@@ -32,7 +32,7 @@ export default function TagSelector({ category, selectedTags, onChange }: TagSel
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium">Tags</label>
+      <label className="mb-2 block text-sm font-medium text-ink">Tags</label>
       <div className="flex flex-wrap gap-2">
         {predefinedTags.map((tag) => (
           <button
@@ -41,8 +41,8 @@ export default function TagSelector({ category, selectedTags, onChange }: TagSel
             onClick={() => toggleTag(tag)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               selectedTags.includes(tag)
-                ? "bg-black text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-ink text-cream"
+                : "bg-cream-dark text-ink-light hover:bg-cream-dark/80"
             }`}
           >
             {tag}
@@ -56,12 +56,12 @@ export default function TagSelector({ category, selectedTags, onChange }: TagSel
           onChange={(e) => setCustomTag(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomTag())}
           placeholder="Add custom tag"
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-black focus:outline-none"
+          className="flex-1 rounded-full border border-cream-dark bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-light/50 focus:border-ink focus:outline-none"
         />
         <button
           type="button"
           onClick={addCustomTag}
-          className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium hover:bg-gray-200"
+          className="rounded-full bg-cream-dark px-4 py-1.5 text-sm font-medium text-ink hover:bg-cream-dark/80"
         >
           Add
         </button>

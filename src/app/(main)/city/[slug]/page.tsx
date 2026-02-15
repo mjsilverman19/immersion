@@ -59,24 +59,29 @@ export default async function CityPage({ params }: Props) {
   });
 
   return (
-    <div>
-      <div className="border-b border-gray-200 p-6">
+    <div className="bg-cream min-h-screen">
+      {/* Map + Header */}
+      <div className="pb-4">
         <CityMap
           center={[city.latitude, city.longitude]}
           places={places || []}
         />
-        <h1 className="mt-4 text-2xl font-bold">{city.name}</h1>
-        <p className="text-sm text-gray-500">{city.country}</p>
-        <div className="mt-2 flex gap-4 text-sm text-gray-500">
-          <span>{places?.length || 0} places</span>
-          <span>{locals?.length || 0} locals</span>
-          <span>{lists?.length || 0} lists</span>
+        <div className="px-4 pt-4">
+          <h1 className="font-serif text-2xl text-ink">{city.name}</h1>
+          <p className="text-sm text-ink-light">{city.country}</p>
+          <div className="mt-2 flex gap-4 text-sm text-ink-light">
+            <span>{places?.length || 0} places</span>
+            <span>{locals?.length || 0} locals</span>
+            <span>{lists?.length || 0} lists</span>
+          </div>
         </div>
       </div>
 
       {/* Top Places */}
-      <div className="p-4">
-        <h2 className="mb-4 text-lg font-semibold">Top Places</h2>
+      <div className="px-4 pb-6">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
+          Top Places
+        </h2>
         <div className="space-y-3">
           {(places || []).map((place) => {
             const stats = placeStats[place.id];
@@ -90,15 +95,17 @@ export default async function CityPage({ params }: Props) {
             );
           })}
           {(!places || places.length === 0) && (
-            <p className="text-sm text-gray-500">No places logged in this city yet</p>
+            <p className="text-sm text-ink-light">No places logged in this city yet</p>
           )}
         </div>
       </div>
 
       {/* Lists */}
       {lists && lists.length > 0 && (
-        <div className="border-t border-gray-200 p-4">
-          <h2 className="mb-4 text-lg font-semibold">Lists</h2>
+        <div className="px-4 pb-6">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
+            Lists
+          </h2>
           <div className="space-y-3">
             {lists.map((list) => {
               const user = list.profiles as Record<string, unknown> | null;
@@ -123,15 +130,17 @@ export default async function CityPage({ params }: Props) {
 
       {/* Locals */}
       {locals && locals.length > 0 && (
-        <div className="border-t border-gray-200 p-4">
-          <h2 className="mb-4 text-lg font-semibold">Locals</h2>
-          <div className="space-y-3">
+        <div className="px-4 pb-24">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
+            Locals
+          </h2>
+          <div className="space-y-2">
             {locals.map((local) => (
-              <Link key={local.id} href={`/profile/${local.username}`} className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50">
+              <Link key={local.id} href={`/profile/${local.username}`} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
                 <Avatar src={local.avatar_url} alt={local.display_name || local.username} />
                 <div>
-                  <p className="font-medium">{local.display_name || local.username}</p>
-                  <p className="text-xs text-gray-500">{local.contribution_count} contributions</p>
+                  <p className="font-medium text-ink">{local.display_name || local.username}</p>
+                  <p className="text-xs text-ink-light">{local.contribution_count} contributions</p>
                 </div>
               </Link>
             ))}

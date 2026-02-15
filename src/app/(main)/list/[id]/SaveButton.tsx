@@ -39,10 +39,10 @@ export default function SaveButton({ listId }: { listId: string }) {
     <button
       onClick={toggleSave}
       disabled={loading}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
         saved
-          ? "bg-black text-white"
-          : "border border-gray-300 hover:bg-gray-50"
+          ? "bg-ink text-cream"
+          : "border border-cream-dark text-ink-light hover:bg-cream-dark"
       }`}
     >
       {saved ? "Saved" : "Save"}
