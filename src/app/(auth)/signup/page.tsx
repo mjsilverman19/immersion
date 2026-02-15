@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -18,9 +19,12 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (error) {
@@ -29,9 +33,41 @@ export default function SignupPage() {
       return;
     }
 
+    // If no session, email confirmation is required
+    if (!data.session) {
+      setConfirmationSent(true);
+      setLoading(false);
+      return;
+    }
+
+    // If session exists, email confirmation is disabled — go straight to onboarding
     router.push("/onboarding");
     router.refresh();
   };
+
+  if (confirmationSent) {
+    return (
+      <div>
+        <h1 className="mb-2 text-2xl font-bold">Check your email</h1>
+        <p className="mb-4 text-sm text-gray-500">
+          We sent a confirmation link to <span className="font-medium text-black">{email}</span>.
+          Click the link to activate your account.
+        </p>
+        <p className="text-sm text-gray-500">
+          Didn&apos;t get it?{" "}
+          <button
+            onClick={() => {
+              setConfirmationSent(false);
+              setLoading(false);
+            }}
+            className="font-medium text-black"
+          >
+            Try again
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
