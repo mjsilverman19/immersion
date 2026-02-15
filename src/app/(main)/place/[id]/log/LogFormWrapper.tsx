@@ -13,6 +13,7 @@ export default function LogFormWrapper({ place }: { place: Place }) {
     id: string;
     rating: number;
     tags: string[];
+    vibe_tags?: string[];
     review: string | null;
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -23,7 +24,7 @@ export default function LogFormWrapper({ place }: { place: Place }) {
     const fetchLog = async () => {
       const { data } = await supabase
         .from("logs")
-        .select("id, rating, tags, review")
+        .select("id, rating, tags, vibe_tags, review")
         .eq("user_id", user.id)
         .eq("place_id", place.id)
         .maybeSingle();

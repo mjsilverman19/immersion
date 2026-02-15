@@ -19,6 +19,7 @@ interface FeedEntry {
   created_at: string;
   rating?: number;
   tags?: string[];
+  vibe_tags?: string[];
   review?: string | null;
   place?: {
     id: string;
@@ -85,6 +86,7 @@ export default function FeedPage() {
         created_at: log.created_at as string,
         rating: log.rating as number,
         tags: log.tags as string[],
+        vibe_tags: (log.vibe_tags as string[]) || [],
         review: log.review as string | null,
         place: places ? {
           id: places.id as string,

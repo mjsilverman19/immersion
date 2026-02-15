@@ -124,9 +124,9 @@ export default async function PlacePage({ params }: Props) {
                     </div>
                     <RatingStars rating={log.rating} size="sm" />
                   </div>
-                  {log.tags?.length > 0 && (
+                  {(log.vibe_tags?.length > 0 || log.tags?.length > 0) && (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {log.tags.map((tag: string) => (
+                      {(log.vibe_tags?.length ? log.vibe_tags : log.tags).map((tag: string) => (
                         <span key={tag} className="rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light">
                           {tag}
                         </span>

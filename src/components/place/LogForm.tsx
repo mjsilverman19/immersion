@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/supabase/auth-provider";
 import { useToast } from "@/components/ui/Toast";
 import RatingStars from "./RatingStars";
 import TagSelector from "./TagSelector";
-import type { Place, PlaceCategory } from "@/lib/types/database";
+import type { Place } from "@/lib/types/database";
 
 interface LogFormProps {
   place: Place;
@@ -14,13 +14,16 @@ interface LogFormProps {
     id: string;
     rating: number;
     tags: string[];
+    vibe_tags?: string[];
     review: string | null;
   } | null;
 }
 
 export default function LogForm({ place, existingLog }: LogFormProps) {
   const [rating, setRating] = useState(existingLog?.rating ?? 0);
-  const [tags, setTags] = useState<string[]>(existingLog?.tags ?? []);
+  const [tags, setTags] = useState<string[]>(
+    existingLog?.vibe_tags?.length ? existingLog.vibe_tags : (existingLog?.tags ?? [])
+  );
   const [review, setReview] = useState(existingLog?.review ?? "");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -42,6 +45,7 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
           place_id: place.id,
           rating,
           tags,
+          vibe_tags: tags,
           review: review || null,
           is_local_log: isLocalLog,
         }),
@@ -81,7 +85,6 @@ export default function LogForm({ place, existingLog }: LogFormProps) {
       </div>
 
       <TagSelector
-        category={place.category as PlaceCategory}
         selectedTags={tags}
         onChange={setTags}
       />

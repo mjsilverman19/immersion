@@ -5,6 +5,7 @@ interface LogData {
   place_id: string;
   rating: number;
   tags: string[];
+  vibe_tags: string[];
   place_category: string;
 }
 
@@ -19,9 +20,11 @@ function computeSimilarity(userALogs: LogData[], userBLogs: LogData[]): number {
     if (b) sharedPlaces.push({ a, b });
   });
 
-  // Tag overlap (Jaccard)
-  const aTags = new Set(userALogs.flatMap((l) => l.tags));
-  const bTags = new Set(userBLogs.flatMap((l) => l.tags));
+  // Tag overlap (Jaccard) — prefer vibe_tags, fall back to tags
+  const getEffectiveTags = (l: LogData) =>
+    l.vibe_tags.length > 0 ? l.vibe_tags : l.tags;
+  const aTags = new Set(userALogs.flatMap(getEffectiveTags));
+  const bTags = new Set(userBLogs.flatMap(getEffectiveTags));
   const tagIntersection = new Set([...aTags].filter((t) => bTags.has(t)));
   const tagUnion = new Set([...aTags, ...bTags]);
   const tagSim = tagUnion.size > 0 ? tagIntersection.size / tagUnion.size : 0;
@@ -85,13 +88,14 @@ export async function GET(request: NextRequest) {
   // Get current user's logs
   const { data: myLogs } = await supabase
     .from("logs")
-    .select("place_id, rating, tags, places!logs_place_id_fkey(category)")
+    .select("place_id, rating, tags, vibe_tags, places!logs_place_id_fkey(category)")
     .eq("user_id", user.id);
 
   const myLogData: LogData[] = (myLogs || []).map((l: Record<string, unknown>) => ({
     place_id: l.place_id as string,
     rating: l.rating as number,
-    tags: l.tags as string[],
+    tags: (l.tags as string[]) || [],
+    vibe_tags: (l.vibe_tags as string[]) || [],
     place_category: ((l.places as Record<string, unknown>)?.category as string) || "experience",
   }));
 
@@ -113,13 +117,14 @@ export async function GET(request: NextRequest) {
     locals.map(async (local) => {
       const { data: localLogs } = await supabase
         .from("logs")
-        .select("place_id, rating, tags, places!logs_place_id_fkey(category)")
+        .select("place_id, rating, tags, vibe_tags, places!logs_place_id_fkey(category)")
         .eq("user_id", local.id);
 
       const localLogData: LogData[] = (localLogs || []).map((l: Record<string, unknown>) => ({
         place_id: l.place_id as string,
         rating: l.rating as number,
-        tags: l.tags as string[],
+        tags: (l.tags as string[]) || [],
+        vibe_tags: (l.vibe_tags as string[]) || [],
         place_category: ((l.places as Record<string, unknown>)?.category as string) || "experience",
       }));
 

@@ -1,18 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { PlaceCategory } from "@/lib/types/database";
-import { CATEGORY_TAGS } from "@/constants/tags";
+import { VIBE_TAGS } from "@/constants/tags";
 
 interface TagSelectorProps {
-  category: PlaceCategory;
   selectedTags: string[];
   onChange: (tags: string[]) => void;
 }
 
-export default function TagSelector({ category, selectedTags, onChange }: TagSelectorProps) {
+export default function TagSelector({ selectedTags, onChange }: TagSelectorProps) {
   const [customTag, setCustomTag] = useState("");
-  const predefinedTags = CATEGORY_TAGS[category] || [];
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -34,7 +31,7 @@ export default function TagSelector({ category, selectedTags, onChange }: TagSel
     <div>
       <label className="mb-2 block text-sm font-medium text-ink">Tags</label>
       <div className="flex flex-wrap gap-2">
-        {predefinedTags.map((tag) => (
+        {VIBE_TAGS.map((tag) => (
           <button
             key={tag}
             type="button"

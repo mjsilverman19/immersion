@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { place_id, rating, tags, review, is_local_log } = body;
+  const { place_id, rating, tags, vibe_tags, review, is_local_log } = body;
 
   if (!place_id || !rating) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       .update({
         rating,
         tags: tags || [],
+        vibe_tags: vibe_tags || [],
         review: review || null,
         is_local_log: is_local_log || false,
       })
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     place_id,
     rating,
     tags: tags || [],
+    vibe_tags: vibe_tags || [],
     review: review || null,
     is_local_log: is_local_log || false,
   });

@@ -15,6 +15,7 @@ interface FeedItemProps {
     // Log fields
     rating?: number;
     tags?: string[];
+    vibe_tags?: string[];
     review?: string | null;
     place?: {
       id: string;
@@ -80,9 +81,9 @@ export default function FeedItem({ item }: FeedItemProps) {
               </div>
               {item.rating && <RatingStars rating={item.rating} size="sm" />}
             </div>
-            {item.tags && item.tags.length > 0 && (
+            {((item.vibe_tags && item.vibe_tags.length > 0) || (item.tags && item.tags.length > 0)) && (
               <div className="mt-2 flex flex-wrap gap-1">
-                {item.tags.map((tag) => (
+                {(item.vibe_tags?.length ? item.vibe_tags : item.tags ?? []).map((tag) => (
                   <span
                     key={tag}
                     className="rounded-full bg-cream-dark px-2 py-0.5 text-[10px] text-ink-light"

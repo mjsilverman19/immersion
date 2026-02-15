@@ -67,14 +67,6 @@ const res = await fetch("/api/example", {
 
 ## Known Issues / Technical Debt
 
-### Client-side write components (need migration to API routes)
-These files still use client-side Supabase for writes and may fail:
-- `src/app/(main)/profile/[username]/edit/page.tsx` — profile updates
-- `src/app/(main)/list/[id]/edit/page.tsx` — list editing
-- `src/app/(main)/lists/new/page.tsx` — creating new lists
-- `src/app/(main)/list/[id]/SaveButton.tsx` — saving/unsaving lists
-- `src/components/ui/AvatarUpload.tsx` — avatar upload to storage
-
 ### `useAuth()` hook limitations
 The hook provides `{ user, profile, isLoading }` but:
 - `isLoading` may never resolve to `false` in some edge cases

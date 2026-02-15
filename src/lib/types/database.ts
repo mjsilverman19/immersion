@@ -20,6 +20,8 @@ export type Database = {
           is_local_verified: boolean;
           contribution_count: number;
           unlocked_cities: string[];
+          taste_preferences: string[];
+          category_preferences: string[];
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +35,8 @@ export type Database = {
           is_local_verified?: boolean;
           contribution_count?: number;
           unlocked_cities?: string[];
+          taste_preferences?: string[];
+          category_preferences?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -46,6 +50,8 @@ export type Database = {
           is_local_verified?: boolean;
           contribution_count?: number;
           unlocked_cities?: string[];
+          taste_preferences?: string[];
+          category_preferences?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -158,6 +164,7 @@ export type Database = {
           place_id: string;
           rating: number;
           tags: string[];
+          vibe_tags: string[];
           review: string | null;
           photos: string[] | null;
           is_local_log: boolean;
@@ -170,6 +177,7 @@ export type Database = {
           place_id: string;
           rating: number;
           tags?: string[];
+          vibe_tags?: string[];
           review?: string | null;
           photos?: string[] | null;
           is_local_log?: boolean;
@@ -182,6 +190,7 @@ export type Database = {
           place_id?: string;
           rating?: number;
           tags?: string[];
+          vibe_tags?: string[];
           review?: string | null;
           photos?: string[] | null;
           is_local_log?: boolean;
