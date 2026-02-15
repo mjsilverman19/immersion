@@ -47,23 +47,69 @@ src/components/example/ExampleForm.tsx  # Client-side — calls fetch("/api/exam
 
 ### Example: Adding a new write operation
 
-```typescript
-// API Route (src/app/api/example/route.ts)
-import { createClient } from "@/lib/supabase/server";
-export async function POST(request: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // ... do the write with user.id
-}
+Use the `authenticated()` helper from `@/lib/api/handler` — it handles auth, JSON parsing, and Zod validation:
 
-// Client Component
+```typescript
+// 1. Add a Zod schema (src/lib/validation/schemas.ts)
+export const createExampleSchema = z.object({
+  name: z.string().min(1),
+  value: z.number().optional(),
+});
+
+// 2. API Route (src/app/api/example/route.ts)
+import { authenticated } from "@/lib/api/handler";
+import { createExampleSchema } from "@/lib/validation/schemas";
+
+export const POST = authenticated(createExampleSchema, async (user, supabase, body) => {
+  // user is already verified, body is already validated
+  const { error } = await supabase.from("examples").insert({ ...body, user_id: user.id });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+});
+
+// For routes that don't need a request body:
+export const DELETE = authenticated(null, async (user, supabase, request) => {
+  // ...
+});
+
+// 3. Client Component
 const res = await fetch("/api/example", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ ... }),
+  body: JSON.stringify({ name: "test" }),
 });
 ```
+
+**Do NOT** write manual auth boilerplate in API routes — always use `authenticated()`.
+
+## Typed Query Results
+
+All Supabase joined query results have typed interfaces in `src/lib/types/queries.ts`. **Do NOT use `as Record<string, unknown>` or inline `as` casts** — import the appropriate type instead.
+
+```typescript
+import type { LogWithPlace, ProfileWithCity } from "@/lib/types/queries";
+
+const { data: logs } = await supabase.from("logs").select("*, places(*)");
+// Use LogWithPlace[] instead of casting
+```
+
+When adding a new joined query pattern, add the interface to `queries.ts`.
+
+## Parallel Queries in Server Components
+
+When a server component makes multiple independent Supabase queries, use `Promise.all`:
+
+```typescript
+const [{ data: logs }, { data: lists }] = await Promise.all([
+  supabase.from("logs").select("*").eq("user_id", id),
+  supabase.from("lists").select("*").eq("user_id", id),
+]);
+```
+
+## Client Component Rules
+
+- **Never use `createClient()` in a `useEffect` dependency array** — it creates a new reference each render. Call it inside the effect or at module scope.
+- **Never use `createClient()` from `@/lib/supabase/client` for writes** — use API routes instead.
 
 ## Known Issues / Technical Debt
 
@@ -72,6 +118,9 @@ The hook provides `{ user, profile, isLoading }` but:
 - `isLoading` may never resolve to `false` in some edge cases
 - `profile` requires a join with the cities table that can fail
 - Don't rely on `isLoading` for conditional rendering — use server components instead
+
+### Pre-existing type error
+`src/app/(main)/place/[id]/log/page.tsx` passes `homeCityId` prop to `LogFormWrapper` but the prop isn't declared in `LogFormWrapperProps`. Not yet fixed.
 
 ## Project Structure
 
@@ -88,28 +137,45 @@ src/
       city/[slug]/   # City detail with map
       place/[id]/    # Place detail + log form
       list/[id]/     # List detail + edit
+      lists/         # User's lists
+      saved/         # Saved lists
       import/        # Google Takeout import
+      error.tsx      # Error boundary for all (main) routes
+      loading.tsx    # Loading state for all (main) routes
     api/
       logs/          # Create/update logs (server-side auth)
+      lists/         # Create lists, update list by id
+      saves/         # Save/unsave lists
+      profile/       # Update profile, taste preferences
+      onboarding/    # Complete onboarding
+      discover/      # Locals + places recommendation endpoints
       places/search/ # Hybrid search (local DB + Google Places)
       places/create-from-google/  # Create place from Google place_id
       import/takeout/             # Process Takeout file upload
+      dev/           # Dev-only endpoints (reset-onboarding, etc.)
   components/
     layout/          # BottomNav, etc.
     map/             # MapView, CityMap (Leaflet wrappers)
-    place/           # PlaceSearch, PlaceCard, LogForm, TagSelector
+    place/           # PlaceSearch, PlaceCard, PlaceCardCompact, LogForm, TagSelector
     list/            # ListCard
     feed/            # FeedItem
     ui/              # Avatar, Toast, CitySelector, etc.
     import/          # TakeoutUpload
   lib/
+    api/
+      handler.ts     # authenticated() helper for API routes
     supabase/
       client.ts      # Browser Supabase client (reads only!)
       server.ts      # Server Supabase client (reads + writes)
-      auth-provider.tsx  # React context for auth state
-      middleware.ts   # Route protection
+      auth-provider.tsx  # React context for auth state (module-scope client)
+      middleware.ts   # Route protection + onboarding guard
     types/
       database.ts    # Supabase-generated types
+      queries.ts     # Typed interfaces for joined query results
+      google-places.ts # Google Places API response types
+    validation/
+      schemas.ts     # Zod schemas for all API request bodies
+    discover/        # Recommendation engine + similarity scoring
     import/          # Takeout parser + place resolver
   constants/
     tags.ts          # Place categories, tags, Google type mapping

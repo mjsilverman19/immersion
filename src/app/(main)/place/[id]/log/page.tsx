@@ -23,20 +23,12 @@ export default async function LogPlacePage({ params }: Props) {
 
   if (!place) notFound();
 
-  // Fetch existing log + profile server-side
-  const [{ data: existingLog }, { data: profile }] = await Promise.all([
-    supabase
-      .from("logs")
-      .select("id, rating, tags, vibe_tags, review")
-      .eq("user_id", user.id)
-      .eq("place_id", place.id)
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("home_city_id")
-      .eq("id", user.id)
-      .single(),
-  ]);
+  const { data: existingLog } = await supabase
+    .from("logs")
+    .select("id, rating, tags, vibe_tags, review")
+    .eq("user_id", user.id)
+    .eq("place_id", place.id)
+    .maybeSingle();
 
   return (
     <div className="bg-cream min-h-screen p-4 pb-24">
@@ -44,7 +36,6 @@ export default async function LogPlacePage({ params }: Props) {
         place={place}
         userId={user.id}
         existingLog={existingLog}
-        homeCityId={profile?.home_city_id ?? null}
       />
     </div>
   );
