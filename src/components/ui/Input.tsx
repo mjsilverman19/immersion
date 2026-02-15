@@ -10,15 +10,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div>
         {label && (
-          <label htmlFor={id} className="mb-1 block text-sm font-medium">
+          <label htmlFor={id} className="mb-1 block text-sm font-medium text-ink">
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={id}
-          className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black ${
-            error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+          className={`w-full rounded-xl border border-cream-dark bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-light/50 focus:border-ink focus:outline-none ${
+            error ? "border-red-500 focus:border-red-500" : ""
           } ${className}`}
           {...props}
         />

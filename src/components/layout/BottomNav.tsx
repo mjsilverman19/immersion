@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/supabase/auth-provider";
+import { useLogSheet } from "@/components/log/LogSheetContext";
 
 function ExploreIcon({ active }: { active: boolean }) {
   return (
@@ -51,6 +52,7 @@ function BookmarkIcon({ active }: { active: boolean }) {
 export default function BottomNav() {
   const pathname = usePathname();
   const { profile } = useAuth();
+  const { open } = useLogSheet();
 
   const tabs = [
     { href: "/explore", label: "Explore", Icon: ExploreIcon },
@@ -75,16 +77,16 @@ export default function BottomNav() {
 
           if (tab.href === "/log") {
             return (
-              <Link
+              <button
                 key={tab.label}
-                href="/log"
+                onClick={open}
                 className="flex min-h-[48px] min-w-[48px] flex-col items-center justify-center py-1.5"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream">
                   <PlusIcon />
                 </span>
                 <span className="mt-0.5 text-[10px] text-ink-light">{tab.label}</span>
-              </Link>
+              </button>
             );
           }
 

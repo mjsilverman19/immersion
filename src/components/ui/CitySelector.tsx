@@ -34,24 +34,24 @@ export default function CitySelector({ value, onChange, className = "" }: CitySe
 
   return (
     <div className={`relative ${className}`}>
-      <label className="mb-1 block text-sm font-medium">Home City</label>
+      <label className="mb-1 block text-sm font-medium text-ink">Home City</label>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-left text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+        className="w-full rounded-xl border border-cream-dark bg-white px-3 py-2 text-left text-sm text-ink focus:border-ink focus:outline-none"
       >
         {selected ? `${selected.name}, ${selected.country}` : "Select your city"}
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full rounded-xl border border-cream-dark bg-white shadow-lg">
           <div className="p-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search cities..."
-              className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:border-black focus:outline-none"
+              className="w-full rounded-lg border border-cream-dark px-3 py-1.5 text-sm text-ink placeholder:text-ink-light/50 focus:border-ink focus:outline-none"
               autoFocus
             />
           </div>
@@ -65,8 +65,8 @@ export default function CitySelector({ value, onChange, className = "" }: CitySe
                     setIsOpen(false);
                     setSearch("");
                   }}
-                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${
-                    city.id === value ? "bg-gray-50 font-medium" : ""
+                  className={`w-full px-3 py-2 text-left text-sm text-ink hover:bg-cream-dark ${
+                    city.id === value ? "bg-cream-dark font-medium" : ""
                   }`}
                 >
                   {city.name}, {city.country}
@@ -74,7 +74,7 @@ export default function CitySelector({ value, onChange, className = "" }: CitySe
               </li>
             ))}
             {filtered.length === 0 && (
-              <li className="px-3 py-2 text-sm text-gray-500">No cities found</li>
+              <li className="px-3 py-2 text-sm text-ink-light">No cities found</li>
             )}
           </ul>
         </div>

@@ -1,5 +1,7 @@
 import { AuthProvider } from "@/lib/supabase/auth-provider";
 import BottomNav from "@/components/layout/BottomNav";
+import { LogSheetProvider } from "@/components/log/LogSheetContext";
+import LogSheet from "@/components/log/LogSheet";
 
 export default function MainLayout({
   children,
@@ -8,10 +10,13 @@ export default function MainLayout({
 }) {
   return (
     <AuthProvider>
-      <div className="min-h-screen pb-20">
-        {children}
-      </div>
-      <BottomNav />
+      <LogSheetProvider>
+        <div className="min-h-screen pb-20">
+          {children}
+        </div>
+        <BottomNav />
+        <LogSheet />
+      </LogSheetProvider>
     </AuthProvider>
   );
 }

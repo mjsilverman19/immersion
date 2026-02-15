@@ -18,7 +18,7 @@ export default async function LogPlacePage({ params }: Props) {
   if (!place) notFound();
 
   return (
-    <div className="p-4">
+    <div className="bg-cream min-h-screen p-4 pb-24">
       <LogFormWrapper place={place} />
     </div>
   );
