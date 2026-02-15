@@ -28,7 +28,7 @@ export default function MapClient({ places, center }: MapClientProps) {
           </svg>
         </div>
         <h2 className="font-serif text-lg text-ink">No places yet</h2>
-        <p className="mt-1 text-sm text-ink-light">
+        <p className="mt-1 text-xs text-ink-light">
           Import your Google Maps saves or log a place to see it on the map.
         </p>
       </div>
