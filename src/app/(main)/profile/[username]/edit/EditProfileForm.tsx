@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CitySelector from "@/components/ui/CitySelector";
 import AvatarUpload from "@/components/ui/AvatarUpload";
+import SignOutButton from "@/components/ui/SignOutButton";
 import { useToast } from "@/components/ui/Toast";
 import type { Profile } from "@/lib/types/database";
 
@@ -121,6 +122,10 @@ export default function EditProfileForm({ profile }: Props) {
             </p>
           </div>
         </Link>
+      </div>
+
+      <div className="mt-8 border-t border-cream-dark pt-6 flex justify-center pb-24">
+        <SignOutButton />
       </div>
     </>
   );

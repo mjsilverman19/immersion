@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
+import FollowButton from "@/components/ui/FollowButton";
 
 interface LocalMatch {
   id: string;
@@ -11,6 +12,9 @@ interface LocalMatch {
   avatar_url: string | null;
   contribution_count: number;
   taste_match: number;
+  confidence?: "high" | "medium" | "low" | "new";
+  top_vibe_tags?: string[];
+  is_new?: boolean;
 }
 
 export default function LocalsLikeYou({ cityId }: { cityId: string }) {
@@ -23,7 +27,11 @@ export default function LocalsLikeYou({ cityId }: { cityId: string }) {
         const res = await fetch(`/api/discover/locals?city_id=${cityId}`);
         if (res.ok) {
           const data = await res.json();
-          setLocals((data.locals || []).filter((l: LocalMatch) => l.taste_match > 0).slice(0, 6));
+          setLocals(
+            (data.locals || [])
+              .filter((l: LocalMatch) => l.taste_match > 0 || l.is_new)
+              .slice(0, 6)
+          );
         }
       } catch {
         // Silently fail — section just won't show
@@ -42,29 +50,31 @@ export default function LocalsLikeYou({ cityId }: { cityId: string }) {
       </h2>
       <div className="space-y-2">
         {locals.map((local) => (
-          <Link
+          <div
             key={local.id}
-            href={`/profile/${local.username}`}
-            className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+            className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm"
           >
-            <Avatar
-              src={local.avatar_url}
-              alt={local.display_name || local.username}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-ink truncate">
-                {local.display_name || local.username}
-              </p>
-              <p className="text-xs text-ink-light">
-                {local.contribution_count} places logged
-              </p>
-            </div>
-            <div className="flex-shrink-0 rounded-full bg-rust-light/30 px-2.5 py-1">
-              <span className="text-xs font-medium text-rust">
-                {local.taste_match}% match
-              </span>
-            </div>
-          </Link>
+            <Link href={`/profile/${local.username}`} className="flex items-center gap-3 flex-1 min-w-0">
+              <Avatar
+                src={local.avatar_url}
+                alt={local.display_name || local.username}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-ink truncate">
+                  {local.display_name || local.username}
+                </p>
+                <p className="text-xs text-ink-light">
+                  {local.contribution_count} places logged
+                </p>
+              </div>
+              <div className="flex-shrink-0 rounded-full bg-rust-light/30 px-2.5 py-1">
+                <span className="text-xs font-medium text-rust">
+                  {local.is_new ? "New local" : `${local.taste_match}% match`}
+                </span>
+              </div>
+            </Link>
+            <FollowButton userId={local.id} size="sm" />
+          </div>
         ))}
       </div>
     </div>

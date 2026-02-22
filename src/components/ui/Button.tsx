@@ -10,8 +10,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const base = "inline-flex items-center justify-center rounded-full font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
 
     const variants = {
-      primary: "bg-ink text-cream hover:bg-ink/90 focus:ring-ink",
-      secondary: "border border-ink/20 bg-transparent text-ink hover:bg-cream-dark focus:ring-ink/40",
+      primary: "bg-rust text-white hover:bg-rust/90 focus:ring-rust",
+      secondary: "border border-rust/30 bg-transparent text-rust hover:bg-rust/5 focus:ring-rust/40",
       ghost: "text-ink-light hover:bg-cream-dark hover:text-ink",
     };
 

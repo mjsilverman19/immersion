@@ -22,6 +22,9 @@ export type Database = {
           unlocked_cities: string[];
           taste_preferences: string[];
           category_preferences: string[];
+          taste_vector: number[];
+          taste_vector_version: number;
+          onboarding_version: number;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +40,9 @@ export type Database = {
           unlocked_cities?: string[];
           taste_preferences?: string[];
           category_preferences?: string[];
+          taste_vector?: number[];
+          taste_vector_version?: number;
+          onboarding_version?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -52,6 +58,9 @@ export type Database = {
           unlocked_cities?: string[];
           taste_preferences?: string[];
           category_preferences?: string[];
+          taste_vector?: number[];
+          taste_vector_version?: number;
+          onboarding_version?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -340,6 +349,184 @@ export type Database = {
           },
         ];
       };
+      scenario_pairs: {
+        Row: {
+          id: string;
+          dimension: string;
+          prompt: string;
+          option_a_label: string;
+          option_a_description: string;
+          option_b_label: string;
+          option_b_description: string;
+          image_url_a: string | null;
+          image_url_b: string | null;
+          vector_direction: number[];
+          display_order: number;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dimension: string;
+          prompt: string;
+          option_a_label: string;
+          option_a_description: string;
+          option_b_label: string;
+          option_b_description: string;
+          image_url_a?: string | null;
+          image_url_b?: string | null;
+          vector_direction: number[];
+          display_order?: number;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          dimension?: string;
+          prompt?: string;
+          option_a_label?: string;
+          option_a_description?: string;
+          option_b_label?: string;
+          option_b_description?: string;
+          image_url_a?: string | null;
+          image_url_b?: string | null;
+          vector_direction?: number[];
+          display_order?: number;
+          active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      onboarding_choices: {
+        Row: {
+          id: string;
+          user_id: string;
+          scenario_pair_id: string;
+          chose_b: boolean;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          scenario_pair_id: string;
+          chose_b: boolean;
+          position: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          scenario_pair_id?: string;
+          chose_b?: boolean;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_choices_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "onboarding_choices_scenario_pair_id_fkey";
+            columns: ["scenario_pair_id"];
+            isOneToOne: false;
+            referencedRelation: "scenario_pairs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      place_saves: {
+        Row: {
+          user_id: string;
+          place_id: string;
+          source_user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          place_id: string;
+          source_user_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          place_id?: string;
+          source_user_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_saves_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_saves_place_id_fkey";
+            columns: ["place_id"];
+            isOneToOne: false;
+            referencedRelation: "places";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_saves_source_user_id_fkey";
+            columns: ["source_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          actor_id: string | null;
+          target_id: string | null;
+          read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          actor_id?: string | null;
+          target_id?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: string;
+          actor_id?: string | null;
+          target_id?: string | null;
+          read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       saves: {
         Row: {
           user_id: string;
@@ -390,6 +577,10 @@ export type List = Database["public"]["Tables"]["lists"]["Row"];
 export type ListItem = Database["public"]["Tables"]["list_items"]["Row"];
 export type Follow = Database["public"]["Tables"]["follows"]["Row"];
 export type Save = Database["public"]["Tables"]["saves"]["Row"];
+export type ScenarioPair = Database["public"]["Tables"]["scenario_pairs"]["Row"];
+export type OnboardingChoice = Database["public"]["Tables"]["onboarding_choices"]["Row"];
+export type PlaceSave = Database["public"]["Tables"]["place_saves"]["Row"];
+export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 
 export type PlaceCategory =
   | "restaurant"

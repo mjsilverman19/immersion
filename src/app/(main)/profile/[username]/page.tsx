@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Avatar from "@/components/ui/Avatar";
 import PlaceCardCompact from "@/components/place/PlaceCardCompact";
+import FollowButton from "@/components/ui/FollowButton";
 import Link from "next/link";
 import type { ProfileWithCity, LogWithPlace, ListWithItems } from "@/lib/types/queries";
 
@@ -29,6 +30,7 @@ export default async function ProfilePage({ params }: Props) {
     { data: logs },
     { data: lists },
     { count: followerCount },
+    { count: followingCount },
     { data: { user } },
   ] = await Promise.all([
     supabase
@@ -46,6 +48,10 @@ export default async function ProfilePage({ params }: Props) {
       .from("follows")
       .select("*", { count: "exact", head: true })
       .eq("following_id", profile.id),
+    supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("follower_id", profile.id),
     supabase.auth.getUser(),
   ]);
 
@@ -69,38 +75,48 @@ export default async function ProfilePage({ params }: Props) {
               </svg>
             </Link>
           )}
-          <Avatar
-            src={profile.avatar_url}
-            alt={profile.display_name || profile.username}
-            size="sm"
-          />
         </div>
       </div>
 
       {/* User info block */}
       <div className="px-4 pb-6">
-        <h1 className="font-serif text-3xl text-ink">
-          {profile.display_name || profile.username}
-        </h1>
-        {city && (
-          <p className="mt-1 flex items-center gap-1 text-sm text-ink-light">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-            </svg>
-            {city.name}, {city.country}
-          </p>
-        )}
+        <div className="flex items-start gap-4">
+          <Avatar
+            src={profile.avatar_url}
+            alt={profile.display_name || profile.username}
+            size="xl"
+          />
+          <div className="flex-1 min-w-0 pt-1">
+            <h1 className="font-serif text-2xl text-ink truncate">
+              {profile.display_name || profile.username}
+            </h1>
+            {city && (
+              <p className="mt-0.5 flex items-center gap-1 text-sm text-ink-light">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                </svg>
+                {city.name}, {city.country}
+              </p>
+            )}
+            {!isOwnProfile && (
+              <div className="mt-2">
+                <FollowButton userId={profile.id} />
+              </div>
+            )}
+          </div>
+        </div>
+
         {profile.bio && (
-          <p className="mt-2 text-sm text-ink-light">{profile.bio}</p>
+          <p className="mt-3 text-sm text-ink-light">{profile.bio}</p>
         )}
-        <p className="mt-3 text-sm text-ink-light">
-          {formatCount(userLogs.length)} places
-          {" · "}
-          {formatCount(userLists.length)} lists
-          {" · "}
-          {formatCount(followerCount || 0)} followers
-        </p>
+
+        <div className="mt-3 flex gap-4 text-sm text-ink-light">
+          <span><strong className="text-ink">{formatCount(userLogs.length)}</strong> places</span>
+          <span><strong className="text-ink">{formatCount(userLists.length)}</strong> lists</span>
+          <span><strong className="text-ink">{formatCount(followerCount || 0)}</strong> followers</span>
+          <span><strong className="text-ink">{formatCount(followingCount || 0)}</strong> following</span>
+        </div>
       </div>
 
       {/* LISTS section */}
