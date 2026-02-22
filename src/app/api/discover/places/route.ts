@@ -1,50 +1,61 @@
 import { NextResponse } from "next/server";
 import { authenticated } from "@/lib/api/handler";
 import {
-  computeSimilarity,
+  cosineSimilarity,
+  computeBehavioralVector,
+  blendVectors,
   type LogData,
-} from "@/lib/discover/similarity";
-import { CATEGORY_TO_PREFERENCE } from "@/lib/discover/categories";
-import type { PlaceCategory } from "@/lib/types/database";
-import type { LogWithPlaceCategory, DiscoverLog } from "@/lib/types/queries";
+} from "@/lib/taste-vector";
+import type { LogWithPlaceCategory } from "@/lib/types/queries";
 
-interface PlaceResult {
-  id: string;
-  name: string;
-  address: string | null;
-  category: string;
-  latitude: number;
-  longitude: number;
-  photo_urls: string[] | null;
-  google_maps_url: string | null;
-  score: number;
-  match_level: "strong" | "good" | "moderate" | null;
-  top_vibe_tags: string[];
-  attribution: string | null;
-  mode: "collaborative" | "preference" | "quality";
-  log_count: number;
-  avg_rating: number;
+function hasVector(v: number[] | null | undefined): v is number[] {
+  return Array.isArray(v) && v.length > 0 && v.some((x) => x !== 0);
 }
 
+/**
+ * GET /api/discover/places?city_id=...&limit=...&category=...
+ *
+ * Returns places in a city, weighted by ratings from taste-aligned locals
+ * rather than raw popularity.
+ */
 export const GET = authenticated(null, async (request, { user, supabase }) => {
   const cityId = request.nextUrl.searchParams.get("city_id");
-  const category = request.nextUrl.searchParams.get("category") as PlaceCategory | null;
+  const category = request.nextUrl.searchParams.get("category");
+  const limit = Math.min(parseInt(request.nextUrl.searchParams.get("limit") || "20"), 50);
 
   if (!cityId) {
     return NextResponse.json({ error: "city_id required" }, { status: 400 });
   }
 
-  // Get user profile for taste/category preferences
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("taste_preferences, category_preferences")
-    .eq("id", user.id)
-    .single();
+  // Fetch user profile + logs in parallel
+  const [{ data: myProfile }, { data: myLogs }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("taste_vector")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("logs")
+      .select("rating, tags, vibe_tags, places!logs_place_id_fkey(category)")
+      .eq("user_id", user.id),
+  ]);
 
-  const tastePrefs = profile?.taste_preferences || [];
-  const categoryPrefs = profile?.category_preferences || [];
+  const myLogData: LogData[] = ((myLogs || []) as unknown as LogWithPlaceCategory[]).map(
+    (l) => ({
+      rating: l.rating,
+      tags: l.tags || [],
+      vibe_tags: l.vibe_tags || [],
+      category: l.places?.category || "experience",
+    })
+  );
 
-  // Query 1: Fetch all places in the city (with optional category filter)
+  const myOnboardingVec = myProfile?.taste_vector as number[] | null;
+  const myBehavioralVec = computeBehavioralVector(myLogData);
+  const myBlendedVec = hasVector(myOnboardingVec)
+    ? blendVectors(myOnboardingVec, myBehavioralVec, myLogData.length)
+    : null;
+
+  // Fetch places in this city (with optional category filter)
   let placesQuery = supabase.from("places").select("*").eq("city_id", cityId);
   if (category) {
     placesQuery = placesQuery.eq("category", category);
@@ -52,218 +63,105 @@ export const GET = authenticated(null, async (request, { user, supabase }) => {
   const { data: places } = await placesQuery;
 
   if (!places || places.length === 0) {
-    return NextResponse.json({ places: [], mode: "quality" });
+    return NextResponse.json({ places: [] });
   }
 
+  // Fetch all logs for places in this city
   const placeIds = places.map((p) => p.id);
-
-  // Query 2: Fetch ALL logs for these places in a single query
-  // Join profiles for home_city_id (local detection)
-  const { data: allCityLogs } = await supabase
+  const { data: allLogs } = await supabase
     .from("logs")
-    .select(
-      "id, user_id, place_id, rating, tags, vibe_tags, is_local_log, profiles!logs_user_id_fkey(home_city_id), places!logs_place_id_fkey(category, city_id)"
-    )
+    .select("place_id, user_id, rating, tags, vibe_tags")
     .in("place_id", placeIds);
 
-  // Query 3: Fetch the requesting user's own logs (all cities) for similarity
-  const { data: myLogsRaw } = await supabase
-    .from("logs")
-    .select(
-      "place_id, rating, tags, vibe_tags, places!logs_place_id_fkey(category)"
-    )
-    .eq("user_id", user.id);
+  // If we have a taste vector, fetch the profiles of the log authors
+  // so we can weight by alignment
+  const userVectors = new Map<string, number[]>();
 
-  const myLogs: LogData[] = ((myLogsRaw || []) as unknown as LogWithPlaceCategory[]).map(
-    (l) => ({
-      place_id: l.place_id,
-      rating: l.rating,
-      tags: l.tags || [],
-      vibe_tags: l.vibe_tags || [],
-      place_category: l.places?.category || "experience",
-    })
-  );
+  if (myBlendedVec && allLogs && allLogs.length > 0) {
+    const authorIds = [...new Set(allLogs.map((l) => l.user_id))];
+    const { data: authors } = await supabase
+      .from("profiles")
+      .select("id, taste_vector")
+      .in("id", authorIds);
 
-  // Group city logs by place_id and by user_id
-  const typedCityLogs = (allCityLogs || []) as unknown as DiscoverLog[];
-  const logsByPlace = new Map<string, DiscoverLog[]>();
-  const logsByUser = new Map<string, LogData[]>();
+    if (authors) {
+      for (const author of authors) {
+        const vec = author.taste_vector as number[] | null;
+        if (hasVector(vec)) {
+          userVectors.set(author.id, vec);
+        }
+      }
+    }
+  }
 
-  typedCityLogs.forEach((log) => {
+  // Group logs by place
+  const logsByPlace = new Map<
+    string,
+    { user_id: string; rating: number; tags: string[]; vibe_tags: string[] }[]
+  >();
+  for (const log of allLogs || []) {
     if (!logsByPlace.has(log.place_id)) logsByPlace.set(log.place_id, []);
     logsByPlace.get(log.place_id)!.push(log);
-
-    if (log.user_id !== user.id) {
-      if (!logsByUser.has(log.user_id)) logsByUser.set(log.user_id, []);
-      logsByUser.get(log.user_id)!.push({
-        place_id: log.place_id,
-        rating: log.rating,
-        tags: log.tags || [],
-        vibe_tags: log.vibe_tags || [],
-        place_category: log.places?.category || "experience",
-      });
-    }
-  });
-
-  // Determine scoring mode
-  const mode: "collaborative" | "preference" | "quality" =
-    myLogs.length >= 5
-      ? "collaborative"
-      : tastePrefs.length > 0
-        ? "preference"
-        : "quality";
-
-  // Pre-compute similarities for collaborative mode
-  const userSimilarities = new Map<string, number>();
-  if (mode === "collaborative") {
-    for (const [uid, uLogs] of logsByUser) {
-      userSimilarities.set(uid, computeSimilarity(myLogs, uLogs));
-    }
   }
 
   // Score each place
-  const results: PlaceResult[] = places.map((place) => {
+  const scoredPlaces = places.map((place) => {
     const placeLogs = logsByPlace.get(place.id) || [];
     const logCount = placeLogs.length;
-    const totalRating = placeLogs.reduce(
-      (sum, l) => sum + l.rating,
-      0
-    );
-    const avgRating = logCount > 0 ? totalRating / logCount : 0;
 
-    // Aggregate vibe tags across all logs for this place
+    if (logCount === 0) {
+      return { ...place, score: 0, log_count: 0, avg_rating: 0 };
+    }
+
+    let weightedSum = 0;
+    let weightTotal = 0;
+
+    for (const log of placeLogs) {
+      let weight = 1;
+
+      // If we can compute alignment, boost ratings from aligned locals
+      if (myBlendedVec) {
+        const authorVec = userVectors.get(log.user_id);
+        if (authorVec) {
+          const sim = cosineSimilarity(myBlendedVec, authorVec);
+          // Map -1..1 to 0.5..2.0 so aligned locals' ratings count more
+          weight = 0.5 + ((sim + 1) / 2) * 1.5;
+        }
+      }
+
+      weightedSum += log.rating * weight;
+      weightTotal += weight;
+    }
+
+    const weightedAvg = weightTotal > 0 ? weightedSum / weightTotal : 0;
+    // Combine weighted average with log count signal
+    const score = weightedAvg * (1 + Math.log2(1 + logCount) * 0.1);
+
+    const avgRating =
+      placeLogs.reduce((sum, l) => sum + l.rating, 0) / logCount;
+
+    // Aggregate vibe tags
     const tagCounts = new Map<string, number>();
     placeLogs.forEach((l) => {
-      const vibeTags = l.vibe_tags || [];
-      vibeTags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) || 0) + 1));
+      (l.vibe_tags || []).forEach((t) => tagCounts.set(t, (tagCounts.get(t) || 0) + 1));
     });
     const topVibeTags = [...tagCounts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([tag]) => tag);
 
-    // Local log percentage
-    const localLogs = placeLogs.filter((l) => {
-      return l.profiles?.home_city_id === cityId;
-    });
-    const localPct = logCount > 0 ? localLogs.length / logCount : 0;
-
-    let score = 0;
-    let attribution: string | null = null;
-
-    if (mode === "collaborative") {
-      // Weighted average: similarity × rating for each user who logged this place
-      let weightedSum = 0;
-      let weightTotal = 0;
-      placeLogs.forEach((l) => {
-        if (l.user_id === user.id) return;
-        const sim = userSimilarities.get(l.user_id) || 0;
-        if (sim > 0) {
-          weightedSum += sim * l.rating;
-          weightTotal += sim;
-        }
-      });
-
-      if (weightTotal > 0) {
-        // Normalize to 0-1 (ratings are 1-5, so divide by 5)
-        score = (weightedSum / weightTotal) / 5;
-        // Boost by volume — more similar users = more confidence
-        const uniqueContributors = new Set(
-          placeLogs
-            .filter((l) => l.user_id !== user.id && (userSimilarities.get(l.user_id) || 0) > 0)
-            .map((l) => l.user_id)
-        ).size;
-        score = score * (1 + Math.log2(Math.max(1, uniqueContributors)) * 0.1);
-        score = Math.min(1, score);
-
-        // Attribution: find the most similar user who logged this
-        let bestSim = 0;
-        let bestUser: string | null = null;
-        placeLogs.forEach((l) => {
-          if (l.user_id === user.id) return;
-          const sim = userSimilarities.get(l.user_id) || 0;
-          if (sim > bestSim) {
-            bestSim = sim;
-            bestUser = l.user_id;
-          }
-        });
-        if (bestUser && bestSim > 0.3) {
-          attribution = `Loved by someone with ${Math.round(bestSim * 100)}% similar taste`;
-        }
-      } else {
-        // Fallback to quality for places with no similar-user logs
-        score = qualityScore(logCount, avgRating, localPct);
-      }
-    } else if (mode === "preference") {
-      // Jaccard overlap between place's aggregate vibe_tags and user's taste_preferences
-      const placeTags = new Set(topVibeTags);
-      // Also include all vibe tags from logs, not just top 3
-      placeLogs.forEach((l) => {
-        (l.vibe_tags || []).forEach((t) => placeTags.add(t));
-      });
-
-      const userTags = new Set(tastePrefs);
-      const intersection = new Set(
-        [...placeTags].filter((t) => userTags.has(t))
-      );
-      const union = new Set([...placeTags, ...userTags]);
-      const tagScore = union.size > 0 ? intersection.size / union.size : 0;
-
-      // Category preference boost
-      const placePreference =
-        CATEGORY_TO_PREFERENCE[place.category as PlaceCategory];
-      const catBoost =
-        placePreference && categoryPrefs.includes(placePreference) ? 0.15 : 0;
-
-      score = Math.min(1, tagScore * 0.7 + catBoost + qualityScore(logCount, avgRating, localPct) * 0.15);
-    } else {
-      // Quality heuristic
-      score = qualityScore(logCount, avgRating, localPct);
-    }
-
-    const matchLevel =
-      score >= 0.7
-        ? ("strong" as const)
-        : score >= 0.4
-          ? ("good" as const)
-          : score >= 0.2
-            ? ("moderate" as const)
-            : null;
-
     return {
-      id: place.id,
-      name: place.name,
-      address: place.address,
-      category: place.category,
-      latitude: place.latitude,
-      longitude: place.longitude,
-      photo_urls: place.photo_urls,
-      google_maps_url: place.google_maps_url,
+      ...place,
       score,
-      match_level: matchLevel,
-      top_vibe_tags: topVibeTags,
-      attribution,
-      mode,
       log_count: logCount,
       avg_rating: Math.round(avgRating * 10) / 10,
+      top_vibe_tags: topVibeTags,
     };
   });
 
-  // Sort by score descending
-  results.sort((a, b) => b.score - a.score);
+  scoredPlaces.sort((a, b) => b.score - a.score);
 
-  return NextResponse.json({ places: results, mode });
+  return NextResponse.json({
+    places: scoredPlaces.slice(0, limit),
+  });
 });
-
-/** Quality heuristic: combines log count, average rating, and local percentage */
-function qualityScore(
-  logCount: number,
-  avgRating: number,
-  localPct: number
-): number {
-  if (logCount === 0) return 0;
-  const ratingNorm = avgRating / 5;
-  const countSignal = Math.min(1, Math.log2(logCount + 1) / 4);
-  const localBoost = 1 + localPct * 0.3;
-  return Math.min(1, ratingNorm * 0.5 * localBoost + countSignal * 0.5);
-}

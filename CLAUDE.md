@@ -111,6 +111,42 @@ const [{ data: logs }, { data: lists }] = await Promise.all([
 - **Never use `createClient()` in a `useEffect` dependency array** — it creates a new reference each render. Call it inside the effect or at module scope.
 - **Never use `createClient()` from `@/lib/supabase/client` for writes** — use API routes instead.
 
+## Taste Vector System
+
+Immersion uses an 8-dimensional taste vector to match users with aligned locals and rank places.
+
+### Dimensions
+```
+[0] Quiet(-) / Lively(+)
+[1] Budget(-) / Splurge(+)
+[2] Solo(-) / Social(+)
+[3] Cautious(-) / Adventurous(+)
+[4] Linger(-) / Move(+)
+[5] Morning(-) / Night(+)
+[6] Food-focused(-) / Broad(+)
+[7] Planned(-) / Spontaneous(+)
+```
+
+### How it works
+1. **Onboarding quiz** — 7 pairwise scenario questions (from 20 pairs), each probing 1-2 dimensions → produces an onboarding vector via `computeOnboardingVector()`
+2. **Behavioral vector** — computed from log data (rating patterns, tags, categories) via `computeBehavioralVector()`
+3. **Blended vector** — sigmoid-weighted blend that shifts from onboarding → behavioral as user logs more places (50/50 at ~10 logs, behavioral-dominant by ~20)
+4. **Matching** — cosine similarity between blended vectors, mapped to 0-100% match score
+
+### Key files
+- `src/constants/scenarios.ts` — 20 scenario pairs, quiz sequence, dimension definitions
+- `src/lib/taste-vector.ts` — vector computation, blending, cosine similarity
+- `src/app/api/onboarding/route.ts` — processes quiz choices into taste vectors
+- `src/app/api/discover/locals/route.ts` — taste-aligned local matching
+- `src/app/api/discover/places/route.ts` — taste-weighted place ranking
+
+### Confidence gating
+Match percentages are only shown when enough data exists:
+- **high** (20+ logs) — full match %
+- **medium** (5-19 logs) — full match %
+- **low** (3-4 logs) — full match %
+- **new** (<3 logs) — shows "New local" instead of match %
+
 ## Known Issues / Technical Debt
 
 ### `useAuth()` hook limitations
@@ -146,20 +182,24 @@ src/
       logs/          # Create/update logs (server-side auth)
       lists/         # Create lists, update list by id
       saves/         # Save/unsave lists
+      follows/       # Follow/unfollow users
       profile/       # Update profile, taste preferences
-      onboarding/    # Complete onboarding
-      discover/      # Locals + places recommendation endpoints
+      discover/
+        locals/      # Taste-aligned local matching
+        places/      # Taste-weighted place ranking
+      onboarding/    # Profile setup + taste quiz processing
       places/search/ # Hybrid search (local DB + Google Places)
       places/create-from-google/  # Create place from Google place_id
       import/takeout/             # Process Takeout file upload
       dev/           # Dev-only endpoints (reset-onboarding, etc.)
   components/
-    layout/          # BottomNav, etc.
+    layout/          # BottomNav (5 tabs: Feed, Explore, Log, My Map, Profile)
+    city/            # LocalsLikeYou, RecommendedForYou (taste-matched locals + places)
     map/             # MapView, CityMap (Leaflet wrappers)
     place/           # PlaceSearch, PlaceCard, PlaceCardCompact, LogForm, TagSelector
     list/            # ListCard
     feed/            # FeedItem
-    ui/              # Avatar, Toast, CitySelector, etc.
+    ui/              # Avatar, Button, FollowButton, SignOutButton, Toast, etc.
     import/          # TakeoutUpload
   lib/
     api/
@@ -169,21 +209,23 @@ src/
       server.ts      # Server Supabase client (reads + writes)
       auth-provider.tsx  # React context for auth state (module-scope client)
       middleware.ts   # Route protection + onboarding guard
+    taste-vector.ts  # Vector computation, blending, cosine similarity
+    discover/        # Legacy recommendation engine + similarity scoring
     types/
       database.ts    # Supabase-generated types
       queries.ts     # Typed interfaces for joined query results
       google-places.ts # Google Places API response types
     validation/
       schemas.ts     # Zod schemas for all API request bodies
-    discover/        # Recommendation engine + similarity scoring
     import/          # Takeout parser + place resolver
   constants/
     tags.ts          # Place categories, tags, Google type mapping
+    scenarios.ts     # 20 scenario pairs, quiz sequence, taste dimensions
 ```
 
 ## Database Schema (Key Tables)
 
-- **profiles** — user profiles, FK to cities via home_city_id
+- **profiles** — user profiles, FK to cities via home_city_id; includes `taste_vector` (float8[8]), `taste_vector_version`, `onboarding_version`
 - **cities** — seeded cities with lat/lng
 - **places** — locations with Google place data, category, coordinates
 - **logs** — user ratings/reviews of places (unique per user+place)
@@ -191,8 +233,18 @@ src/
 - **list_items** — places in a list
 - **follows** — social follows
 - **saves** — saved lists
+- **scenario_pairs** — 20 pairwise taste quiz questions with `vector_direction` arrays
+- **onboarding_choices** — user quiz responses (FK to scenario_pairs + profiles)
+- **place_saves** — bookmarked places (distinct from list saves)
+- **notifications** — in-app notifications with type enum
 
 All tables have RLS enabled. Logs/places are publicly readable. Writes require `auth.uid() = user_id`.
+
+### Migrations
+Migration files live in `supabase/migrations/`. Key migrations:
+- `00010` — taste vector schema (new tables + profile columns)
+- `00011` — seed scenario pairs data
+- `00012` — backfill taste vectors from legacy taste_preferences
 
 ## Build & Deploy
 
