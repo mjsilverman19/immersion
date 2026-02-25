@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Avatar from "@/components/ui/Avatar";
-import FollowButton from "@/components/ui/FollowButton";
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import TasteMatchCard from "./TasteMatchCard";
 
 interface LocalMatch {
   id: string;
@@ -12,69 +11,114 @@ interface LocalMatch {
   avatar_url: string | null;
   contribution_count: number;
   taste_match: number;
-  confidence?: "high" | "medium" | "low" | "new";
-  top_vibe_tags?: string[];
-  is_new?: boolean;
+  taste_preferences: string[];
 }
 
 export default function LocalsLikeYou({ cityId }: { cityId: string }) {
   const [locals, setLocals] = useState<LocalMatch[]>([]);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLocals = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch taste matches
         const res = await fetch(`/api/discover/locals?city_id=${cityId}`);
         if (res.ok) {
           const data = await res.json();
           setLocals(
             (data.locals || [])
-              .filter((l: LocalMatch) => l.taste_match > 0 || l.is_new)
-              .slice(0, 6)
+              .filter((l: LocalMatch) => l.taste_match > 0)
+              .slice(0, 8)
           );
+        }
+
+        // Fetch current user's follows (reads are safe client-side)
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: follows } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", user.id);
+          if (follows) {
+            setFollowingIds(new Set(follows.map((f) => f.following_id)));
+          }
         }
       } catch {
         // Silently fail — section just won't show
       }
       setLoading(false);
     };
-    fetchLocals();
+    fetchData();
   }, [cityId]);
+
+  const handleFollow = useCallback(async (userId: string) => {
+    const isCurrentlyFollowing = followingIds.has(userId);
+    const method = isCurrentlyFollowing ? "DELETE" : "POST";
+
+    // Optimistic update
+    setFollowingIds((prev) => {
+      const next = new Set(prev);
+      if (isCurrentlyFollowing) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+
+    try {
+      const res = await fetch("/api/follows", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ following_id: userId }),
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setFollowingIds((prev) => {
+          const next = new Set(prev);
+          if (isCurrentlyFollowing) {
+            next.add(userId);
+          } else {
+            next.delete(userId);
+          }
+          return next;
+        });
+      }
+    } catch {
+      // Revert on error
+      setFollowingIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlyFollowing) {
+          next.add(userId);
+        } else {
+          next.delete(userId);
+        }
+        return next;
+      });
+    }
+  }, [followingIds]);
 
   if (loading || locals.length === 0) return null;
 
   return (
-    <div className="px-4 pb-6">
-      <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
-        Locals Like You
+    <div>
+      <h2 className="mb-3 px-4 text-xs font-medium uppercase tracking-widest text-ink-light">
+        Your Top Taste Matches
       </h2>
-      <div className="space-y-2">
+      <div className="scrollbar-hide flex gap-3 overflow-x-auto px-4 pb-2">
         {locals.map((local) => (
-          <div
+          <TasteMatchCard
             key={local.id}
-            className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm"
-          >
-            <Link href={`/profile/${local.username}`} className="flex items-center gap-3 flex-1 min-w-0">
-              <Avatar
-                src={local.avatar_url}
-                alt={local.display_name || local.username}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-ink truncate">
-                  {local.display_name || local.username}
-                </p>
-                <p className="text-xs text-ink-light">
-                  {local.contribution_count} places logged
-                </p>
-              </div>
-              <div className="flex-shrink-0 rounded-full bg-rust-light/30 px-2.5 py-1">
-                <span className="text-xs font-medium text-rust">
-                  {local.is_new ? "New local" : `${local.taste_match}% match`}
-                </span>
-              </div>
-            </Link>
-            <FollowButton userId={local.id} size="sm" />
-          </div>
+            username={local.username}
+            displayName={local.display_name}
+            avatarUrl={local.avatar_url}
+            tasteMatch={local.taste_match}
+            tastePreferences={local.taste_preferences || []}
+            isFollowing={followingIds.has(local.id)}
+            onFollow={() => handleFollow(local.id)}
+          />
         ))}
       </div>
     </div>
