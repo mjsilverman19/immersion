@@ -21,6 +21,9 @@ const config: Config = {
           DEFAULT: "#1A1A1A",
           light: "#6B6B6B",
         },
+        indigo: {
+          DEFAULT: "#6B6E8A",
+        },
         rust: {
           DEFAULT: "#C45D3E",
           light: "#E8A990",

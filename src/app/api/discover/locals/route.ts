@@ -6,6 +6,7 @@ import {
   cosineSimilarity,
   computeBehavioralVector,
   blendVectors,
+  getTopVibeTags,
   type LogData,
 } from "@/lib/taste-vector";
 import type { LogWithPlaceCategory } from "@/lib/types/queries";
@@ -17,22 +18,6 @@ function getConfidence(logCount: number): "high" | "medium" | "low" | "new" {
   if (logCount >= 5) return "medium";
   if (logCount >= 3) return "low";
   return "new";
-}
-
-function getTopVibeTags(
-  logs: { vibe_tags: string[] }[],
-  limit = 5
-): string[] {
-  const counts = new Map<string, number>();
-  for (const log of logs) {
-    for (const tag of log.vibe_tags) {
-      counts.set(tag, (counts.get(tag) || 0) + 1);
-    }
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([tag]) => tag);
 }
 
 function hasVector(v: number[] | null | undefined): v is number[] {

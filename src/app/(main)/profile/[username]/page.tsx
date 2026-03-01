@@ -1,18 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import Avatar from "@/components/ui/Avatar";
-import PlaceCardCompact from "@/components/place/PlaceCardCompact";
-import FollowButton from "@/components/ui/FollowButton";
-import Link from "next/link";
+import { getTopVibeTags, cosineSimilarity } from "@/lib/taste-vector";
+import OwnProfileClient from "./own-profile-client";
+import VisitorProfileClient from "./visitor-profile-client";
 import type { ProfileWithCity, LogWithPlace, ListWithItems } from "@/lib/types/queries";
 
 interface Props {
   params: { username: string };
-}
-
-function formatCount(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
 }
 
 export default async function ProfilePage({ params }: Props) {
@@ -61,138 +55,262 @@ export default async function ProfilePage({ params }: Props) {
   const userLists = (lists || []) as unknown as ListWithItems[];
   const isOwnProfile = user?.id === profile.id;
 
+  // ── Own profile ──
+  if (isOwnProfile) {
+    const { data: placeSaves } = await supabase
+      .from("place_saves")
+      .select(
+        `
+        user_id,
+        place_id,
+        source_user_id,
+        created_at,
+        place:places!place_saves_place_id_fkey(id, name, photo_urls, latitude, longitude, city_id, city:cities!places_city_id_fkey(id, name, slug))
+      `
+      )
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false });
+
+    // Group place saves by city for city boards
+    const cityBoardsMap = new Map<string, { cityName: string; photos: (string | null)[]; count: number }>();
+    for (const save of (placeSaves || []) as unknown as Array<{ place: { photo_urls: string[] | null; city: { id: string; name: string } | null } | null }>) {
+      const p = save.place;
+      if (!p?.city) continue;
+      const cityId = p.city.id;
+      if (!cityBoardsMap.has(cityId)) {
+        cityBoardsMap.set(cityId, { cityName: p.city.name, photos: [], count: 0 });
+      }
+      const board = cityBoardsMap.get(cityId)!;
+      board.count++;
+      if (board.photos.length < 4) {
+        board.photos.push(p.photo_urls?.[0] ?? null);
+      }
+    }
+
+    const cityBoards = [...cityBoardsMap.values()].map((b) => ({
+      cityName: b.cityName,
+      savedCount: b.count,
+      photos: [...b.photos, null, null, null, null].slice(0, 4),
+    }));
+
+    // Build map pins
+    const logPins = userLogs
+      .filter((l) => l.place?.latitude && l.place?.longitude)
+      .map((l) => ({
+        lat: l.place!.latitude,
+        lng: l.place!.longitude,
+        type: "logged" as const,
+      }));
+
+    const savePins = ((placeSaves || []) as unknown as Array<{ place: { latitude: number; longitude: number } | null }>)
+      .filter((s) => s.place?.latitude && s.place?.longitude)
+      .map((s) => ({
+        lat: s.place!.latitude,
+        lng: s.place!.longitude,
+        type: "saved" as const,
+      }));
+
+    const vibeTags = getTopVibeTags(userLogs.map((l) => ({ vibe_tags: l.vibe_tags })));
+
+    const mapCenter: [number, number] | undefined = city
+      ? [city.latitude, city.longitude]
+      : undefined;
+
+    return (
+      <OwnProfileClient
+        profile={{
+          username: typedProfile.username,
+          displayName: typedProfile.display_name,
+          avatarUrl: typedProfile.avatar_url,
+          bio: typedProfile.bio,
+          cityName: city ? `${city.name}, ${city.country}` : null,
+        }}
+        stats={{
+          places: userLogs.length,
+          lists: userLists.length,
+          followers: followerCount || 0,
+          following: followingCount || 0,
+        }}
+        mapPins={[...logPins, ...savePins]}
+        mapCenter={mapCenter}
+        logCount={logPins.length}
+        saveCount={savePins.length}
+        cityName={city?.name || null}
+        vibeTags={vibeTags}
+        cityBoards={cityBoards}
+        lists={userLists.map((list) => {
+          const items = list.list_items || [];
+          const coverPhoto = items.map((item) => item.place?.photo_urls?.[0]).filter(Boolean)[0] as string | undefined;
+          return {
+            id: list.id,
+            title: list.title,
+            placeCount: items.length,
+            coverPhoto: coverPhoto || null,
+          };
+        })}
+        recentLogs={userLogs.slice(0, 10).map((log) => ({
+          id: log.id,
+          placeId: log.place?.id || "",
+          name: log.place?.name || "",
+          neighborhood: log.place?.city?.name || "",
+          rating: log.rating,
+          photoUrl: log.place?.photo_urls?.[0] || null,
+        }))}
+      />
+    );
+  }
+
+  // ── Visitor profile ──
+  // Fetch viewer's data for alignment computation
+  const [
+    { data: viewerProfile },
+    { data: viewerLogs },
+    { data: viewerSaves },
+    { data: followRow },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("taste_vector")
+      .eq("id", user!.id)
+      .single(),
+    supabase
+      .from("logs")
+      .select("place_id, vibe_tags")
+      .eq("user_id", user!.id),
+    supabase
+      .from("place_saves")
+      .select("place_id")
+      .eq("user_id", user!.id),
+    supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", user!.id)
+      .eq("following_id", profile.id)
+      .maybeSingle(),
+  ]);
+
+  const isFollowing = !!followRow;
+
+  // Compute alignment score
+  let alignmentScore: number | null = null;
+  if (
+    userLogs.length >= 3 &&
+    viewerProfile?.taste_vector &&
+    (profile as Record<string, unknown>).taste_vector
+  ) {
+    const similarity = cosineSimilarity(
+      viewerProfile.taste_vector as number[],
+      (profile as Record<string, unknown>).taste_vector as number[]
+    );
+    alignmentScore = Math.round(Math.max(0, similarity) * 100);
+  }
+
+  // Compute shared vibe tags
+  const viewerVibeSet = new Set<string>();
+  for (const log of viewerLogs || []) {
+    for (const tag of (log.vibe_tags as string[] | null) || []) {
+      viewerVibeSet.add(tag);
+    }
+  }
+  const localVibeSet = new Set<string>();
+  for (const log of userLogs) {
+    for (const tag of log.vibe_tags || []) {
+      localVibeSet.add(tag);
+    }
+  }
+  const sharedTags = [...viewerVibeSet].filter((tag) => localVibeSet.has(tag));
+
+  // Compute alignment places (local's logs not in viewer's logs, sorted by rating)
+  const viewerPlaceIds = new Set(
+    (viewerLogs || []).map((l) => l.place_id)
+  );
+  const alignScore = alignmentScore ?? 50;
+  const alignmentPlaces = userLogs
+    .filter((log) => log.place && !viewerPlaceIds.has(log.place.id))
+    .sort(
+      (a, b) =>
+        b.rating * alignScore - a.rating * alignScore
+    )
+    .slice(0, 5)
+    .map((log) => ({
+      placeId: log.place!.id,
+      name: log.place!.name,
+      neighborhood: log.place!.city?.name || null,
+      category: log.place!.category || "experience",
+      rating: log.rating,
+      review: log.review,
+    }));
+
+  // Viewer's saved place IDs (for initial button states)
+  const savedPlaceIds = (viewerSaves || []).map(
+    (s) => s.place_id
+  );
+
+  // Map pins (heart only for visitor view)
+  const visitorMapPins = userLogs
+    .filter((l) => l.place?.latitude && l.place?.longitude)
+    .map((l) => ({
+      lat: l.place!.latitude,
+      lng: l.place!.longitude,
+      type: "logged" as const,
+      placeId: l.place!.id,
+      name: l.place!.name,
+      rating: l.rating,
+      vibeTag: (l.vibe_tags || [])[0] || undefined,
+    }));
+
+  const vibeTags = getTopVibeTags(
+    userLogs.map((l) => ({ vibe_tags: l.vibe_tags }))
+  );
+
+  const firstName = (
+    typedProfile.display_name || typedProfile.username
+  ).split(" ")[0];
+
   return (
-    <div className="bg-cream min-h-screen">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <h2 className="font-serif text-xl text-ink">immersion</h2>
-        <div className="flex items-center gap-3">
-          {isOwnProfile && (
-            <Link href={`/profile/${profile.username}/edit`} className="text-ink-light">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              </svg>
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* User info block */}
-      <div className="px-4 pb-6">
-        <div className="flex items-start gap-4">
-          <Avatar
-            src={profile.avatar_url}
-            alt={profile.display_name || profile.username}
-            size="xl"
-          />
-          <div className="flex-1 min-w-0 pt-1">
-            <h1 className="font-serif text-2xl text-ink truncate">
-              {profile.display_name || profile.username}
-            </h1>
-            {city && (
-              <p className="mt-0.5 flex items-center gap-1 text-sm text-ink-light">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                </svg>
-                {city.name}, {city.country}
-              </p>
-            )}
-            {!isOwnProfile && (
-              <div className="mt-2">
-                <FollowButton userId={profile.id} />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {profile.bio && (
-          <p className="mt-3 text-sm text-ink-light">{profile.bio}</p>
-        )}
-
-        <div className="mt-3 flex gap-4 text-sm text-ink-light">
-          <span><strong className="text-ink">{formatCount(userLogs.length)}</strong> places</span>
-          <span><strong className="text-ink">{formatCount(userLists.length)}</strong> lists</span>
-          <span><strong className="text-ink">{formatCount(followerCount || 0)}</strong> followers</span>
-          <span><strong className="text-ink">{formatCount(followingCount || 0)}</strong> following</span>
-        </div>
-      </div>
-
-      {/* LISTS section */}
-      {userLists.length > 0 && (
-        <div className="pb-6">
-          <h3 className="mb-3 px-4 text-xs font-medium uppercase tracking-widest text-ink-light">
-            Lists
-          </h3>
-          <div className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
-            {userLists.map((list) => {
-              const items = list.list_items || [];
-              const photos = items
-                .map((item) => item.place?.photo_urls?.[0])
-                .filter(Boolean) as string[];
-
-              return (
-                <Link
-                  key={list.id}
-                  href={`/list/${list.id}`}
-                  className="flex-shrink-0 snap-start"
-                  style={{ width: "160px" }}
-                >
-                  <div className="h-24 w-full overflow-hidden rounded-lg bg-cream-dark">
-                    {photos.length >= 4 ? (
-                      <div className="grid grid-cols-2 grid-rows-2 h-full w-full">
-                        {photos.slice(0, 4).map((url, i) => (
-                          <img key={i} src={url} alt="" className="h-full w-full object-cover" />
-                        ))}
-                      </div>
-                    ) : photos.length > 0 ? (
-                      <img src={photos[0]} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-8 h-8 text-ink-light/30">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className="mt-1.5 text-sm font-medium text-ink truncate">
-                    {list.title}
-                  </p>
-                  <p className="text-xs text-ink-light">
-                    {items.length} places
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* RECENT section */}
-      <div className="px-4 pb-24">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-widest text-ink-light">
-          Recent
-        </h3>
-        {userLogs.length === 0 ? (
-          <p className="text-sm text-ink-light">No logs yet</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {userLogs.map((log) => (
-              <PlaceCardCompact
-                key={log.id}
-                placeId={log.place?.id || ""}
-                name={log.place?.name || ""}
-                cityName={log.place?.city?.name}
-                category={log.place?.category || "experience"}
-                rating={log.rating}
-                review={log.review}
-                photoUrl={log.place?.photo_urls?.[0]}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <VisitorProfileClient
+      profile={{
+        id: typedProfile.id,
+        username: typedProfile.username,
+        displayName: typedProfile.display_name,
+        avatarUrl: typedProfile.avatar_url,
+        bio: typedProfile.bio,
+        cityName: city ? `${city.name}, ${city.country}` : null,
+        firstName,
+      }}
+      stats={{
+        places: userLogs.length,
+        lists: userLists.length,
+        followers: followerCount || 0,
+        following: followingCount || 0,
+      }}
+      mapPins={visitorMapPins}
+      alignmentScore={alignmentScore}
+      sharedTags={sharedTags}
+      alignmentPlaces={alignmentPlaces}
+      vibeTags={vibeTags}
+      lists={userLists.map((list) => {
+        const items = list.list_items || [];
+        const coverPhoto = items
+          .map((item) => item.place?.photo_urls?.[0])
+          .filter(Boolean)[0] as string | undefined;
+        return {
+          id: list.id,
+          title: list.title,
+          placeCount: items.length,
+          coverPhoto: coverPhoto || null,
+        };
+      })}
+      recentLogs={userLogs.slice(0, 10).map((log) => ({
+        id: log.id,
+        placeId: log.place?.id || "",
+        name: log.place?.name || "",
+        neighborhood: log.place?.city?.name || "",
+        rating: log.rating,
+        photoUrl: log.place?.photo_urls?.[0] || null,
+      }))}
+      savedPlaceIds={savedPlaceIds}
+      isFollowing={isFollowing}
+    />
   );
 }

@@ -217,6 +217,29 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 
 // ── Helpers ────────────────────────────────────────────────────────
 
+// ── Tag analysis ──────────────────────────────────────────────────
+
+/**
+ * Count vibe_tags across all logs and return the top N by frequency.
+ */
+export function getTopVibeTags(
+  logs: { vibe_tags: string[] | null }[],
+  limit = 7
+): string[] {
+  const counts = new Map<string, number>();
+  for (const log of logs) {
+    for (const tag of log.vibe_tags || []) {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag]) => tag);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+
 /** Normalize a vector to unit length. Returns zero vector if magnitude is 0. */
 function normalize(v: number[]): number[] {
   let mag = 0;
