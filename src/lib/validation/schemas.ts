@@ -73,3 +73,12 @@ export const saveSchema = z.object({
 export const createFromGoogleSchema = z.object({
   google_place_id: z.string().min(1),
 });
+
+export const savePlaceSchema = z.object({
+  place_id: z.string().uuid(),
+  source_user_id: z.string().uuid().nullish().transform((v) => v || null),
+});
+
+export const unsavePlaceSchema = z.object({
+  place_id: z.string().uuid(),
+});

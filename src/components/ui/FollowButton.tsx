@@ -7,15 +7,23 @@ import { useAuth } from "@/lib/supabase/auth-provider";
 interface FollowButtonProps {
   userId: string;
   size?: "sm" | "md";
+  variant?: "rust" | "indigo";
+  className?: string;
+  /** When provided, skips the client-side auth check and uses this value */
+  initialFollowing?: boolean;
 }
 
-export default function FollowButton({ userId, size = "md" }: FollowButtonProps) {
+export default function FollowButton({ userId, size = "md", variant = "rust", className = "", initialFollowing }: FollowButtonProps) {
   const { user } = useAuth();
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const serverProvided = initialFollowing !== undefined;
+  const [isFollowing, setIsFollowing] = useState(initialFollowing ?? false);
+  const [loading, setLoading] = useState(!serverProvided);
   const supabase = createClient();
 
   useEffect(() => {
+    // Skip client-side check if server already provided the state
+    if (serverProvided) return;
+
     if (!user) {
       setLoading(false);
       return;
@@ -34,9 +42,10 @@ export default function FollowButton({ userId, size = "md" }: FollowButtonProps)
     };
 
     checkFollow();
-  }, [user, userId, supabase]);
+  }, [user, userId, supabase, serverProvided]);
 
-  if (!user || user.id === userId) return null;
+  // Only hide when not server-provided and auth isn't available
+  if (!serverProvided && (!user || user.id === userId)) return null;
 
   const handleToggle = async () => {
     const prev = isFollowing;
@@ -57,9 +66,17 @@ export default function FollowButton({ userId, size = "md" }: FollowButtonProps)
     ? "px-3 py-1 text-xs"
     : "px-4 py-1.5 text-sm";
 
+  const colorClasses = variant === "indigo"
+    ? isFollowing
+      ? "bg-indigo text-white"
+      : "border border-indigo/30 text-indigo hover:bg-indigo/5"
+    : isFollowing
+      ? "bg-rust text-white"
+      : "border border-rust text-rust hover:bg-rust/5";
+
   if (loading) {
     return (
-      <span className={`inline-flex items-center justify-center rounded-full border border-cream-dark ${sizeClasses} text-cream-dark`}>
+      <span className={`inline-flex items-center justify-center rounded-full border border-cream-dark ${sizeClasses} text-cream-dark ${className}`}>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       </span>
     );
@@ -68,11 +85,7 @@ export default function FollowButton({ userId, size = "md" }: FollowButtonProps)
   return (
     <button
       onClick={handleToggle}
-      className={`inline-flex items-center justify-center rounded-full font-medium transition-colors ${sizeClasses} ${
-        isFollowing
-          ? "bg-rust text-white"
-          : "border border-rust text-rust hover:bg-rust/5"
-      }`}
+      className={`inline-flex items-center justify-center rounded-full font-medium transition-colors ${sizeClasses} ${colorClasses} ${className}`}
     >
       {isFollowing ? "Following" : "Follow"}
     </button>
