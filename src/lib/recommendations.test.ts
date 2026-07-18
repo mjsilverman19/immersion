@@ -126,11 +126,11 @@ describe("area and venue recommendations", () => {
     }
   });
 
-  it("caps dense map places at 250 and emphasizes exactly five", () => {
+  it("returns every eligible map place and emphasizes exactly five", () => {
     const denseVenues = [...venues, ...Array.from({ length: 300 }, (_, index) => venue(`dense-${index}`, "Area 0", "a", "restaurant", 0.5))];
     const result = buildAreaRecommendations({ geometry, metrics: metric(55), venues: denseVenues, categoryCurves: null, hour: 15, intent: "anything", tasteProfile: null, mapMode: "baseline", userLocation: null });
     const denseArea = result.find((area) => area.id === "Area 0");
-    expect(denseArea?.mapVenues).toHaveLength(250);
+    expect(denseArea?.mapVenues).toHaveLength(303);
     expect(denseArea?.recommendedVenues).toHaveLength(5);
     expect(denseArea?.mapVenues.filter((item) => item.isRecommended)).toHaveLength(5);
   });

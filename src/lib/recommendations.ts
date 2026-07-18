@@ -170,7 +170,7 @@ function rankVenues(
       { feature: "cluster", contribution: 0.1 * clusterFit, label: "Part of a promising nearby cluster", evidenceConfidence: draft.confidence },
     ];
     return { venue, score, timeFit: temporal, radarEvidence: venueRadarEvidence(venue, draft), contributions: contributions.filter((item) => item.contribution > 0).sort((a, b) => b.contribution - a.contribution).slice(0, 3) };
-  }).sort((a, b) => b.score - a.score).slice(0, 250);
+  }).sort((a, b) => b.score - a.score);
   const recommendationLabel = input.mapMode === "personalized" && input.tasteProfile ? "People like you" as const : "Strong fit" as const;
   return ranked.map((item, index) => ({ ...item, rank: index + 1, isRecommended: index < 5, recommendationLabel }));
 }
