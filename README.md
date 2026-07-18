@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Immersion
 
-## Getting Started
+Immersion is a recommendation-first NYC map. Its offline engine models a
+typical week; the React product uses that intelligence quietly to show where to
+look, then which places fit a user’s intent and optional taste profile.
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```text
+immersion_data → versioned NYC artifacts → immersion React app
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Product loop
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+Open map → choose intent → choose an area → compare 3–5 venues
+         ↘ optional Near me and five-choice taste flow ↗
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- City zoom shows at most three neighborhood-scale recommendation halos, never
+  a blanket analytics grid.
+- Intent immediately changes area and venue eligibility.
+- `Near me` is opt-in and precise location remains in memory only.
+- Taste personalization is capped at ±30% and can be compared with the city
+  baseline.
+- Venue actions persist locally behind a replaceable storage interface.
+- Recommendation copy never claims literal local/tourist composition.
 
-## Learn More
+## Run and verify
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm test
+npm run typecheck
+npm run build
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app opens directly at `/map`. MapLibre uses keyless OpenFreeMap tiles; no
+authentication or Mapbox token is required. `vercel.json` provides SPA rewrites
+and data caching.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data boundary
 
-## Deploy on Vercel
+The app never parses CSV or fetches GitHub raw URLs. Regenerate the checked-in
+contract from the separate engine checkout with:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run data:export -- ../immersion_data/data
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`pipeline/export_frontend.py` filters geometry to the declared pilot coverage,
+assigns H3 cells to NTA neighborhoods, derives discovery features from real
+venue inventory, splits the hourly model by weekday, strips raw provider
+fields, and emits schema-versioned artifacts under `public/data/nyc`.
+
+## Scoring guardrails
+
+- Area candidates combine relative activity, intent-relevant supply, diversity,
+  wandering potential, confidence, and a small internal orientation adjustment.
+- Taste follows the capped formula `B × [1 + 0.3 × tanh(θ·x)]`, with confidence
+  pulling unsupported areas back toward baseline.
+- Venues rank only inside a selected area. Intent and taste are primary;
+  external quality prior is a maximum 10% tie-breaker.
+- Explanations are template-based outputs of actual positive contributions.
+
+The methodology page documents activity, local-orientation, visitor-pressure,
+confidence, limitations, dataset version, and footprint in plain language.

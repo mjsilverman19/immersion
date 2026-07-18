@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Immersion: Cream / Ink / Rust */
+    --background: 36 33% 97%; /* #FAF8F5 cream */
+    --foreground: 0 0% 10%; /* #1A1A1A ink */
+
+    --card: 0 0% 100%; /* white cards on cream */
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 13 53% 50%; /* #C45D3E rust */
+    --primary-foreground: 36 33% 97%;
+
+    --secondary: 36 20% 92%; /* warm light */
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 36 15% 93%;
+    --muted-foreground: 0 0% 42%; /* #6B6B6B */
+
+    --accent: 13 53% 50%;
+    --accent-foreground: 36 33% 97%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 15% 88%;
+    --input: 36 15% 88%;
+    --ring: 13 53% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 36 20% 92%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 36 20% 92%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 36 20% 92%;
+
+    --primary: 13 53% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 36 20% 92%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 13 53% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 13 53% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Instrument Serif', serif;
+  }
+}
+
+@layer utilities {
+  .font-serif {
+    font-family: 'Instrument Serif', serif;
+  }
+  .font-sans {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* MapLibre GL: soften controls and popups to match the paper-like surface */
+.maplibregl-popup-content {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid hsl(36, 15%, 88%) !important;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.maplibregl-ctrl-group {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+}
