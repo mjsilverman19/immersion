@@ -18,7 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DAYS = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+COMPLEMENT_ROLES = ("alongside", "after", "before")
 ALLOWED_OUTER = {
     "Greenpoint", "Williamsburg", "South Williamsburg", "East Williamsburg",
     "Long Island City-Hunters Point",
@@ -188,7 +189,7 @@ def export_metrics(source: Path, output: Path, retained_ids: set[str]) -> dict[s
     return metric_files
 
 
-def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str]) -> None:
+def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str]) -> list[str]:
     venues = []
     for row in venue_rows:
         if row["hex_id"] not in retained_ids:
@@ -210,6 +211,38 @@ def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str]) 
             },
         })
     write_json(output / "venues.json", venues)
+    return [venue["id"] for venue in venues]
+
+
+def export_place_neighbors(source: Path, output: Path, venue_ids: list[str]) -> None:
+    """Compact the engine's venue-to-venue retrieval to the shipped contract.
+
+    Candidate references become integer indices into venues.json (which is exported
+    in `venue_ids` order), and candidates outside pilot coverage are dropped. The
+    per-channel score arrays are passed through untouched; reason text is
+    reconstructed client-side. Roles are stored as an index into COMPLEMENT_ROLES.
+    """
+    raw = json.loads((source / "place_neighbors.json").read_text())
+    index = {vid: i for i, vid in enumerate(venue_ids)}
+    similar: list[list] = []
+    complements: list[list] = []
+    for vid in venue_ids:
+        entry = raw.get(vid, {})
+        similar.append([
+            [index[item["id"]], *item["s"]]
+            for item in entry.get("similar", []) if item["id"] in index
+        ])
+        complements.append([
+            [index[item["id"]], item["distanceMeters"], COMPLEMENT_ROLES.index(item["role"]), *item["s"]]
+            for item in entry.get("complements", []) if item["id"] in index
+        ])
+    write_json(output / "place_neighbors.json", {
+        "similarScoreOrder": ["time", "ecology", "area", "category", "spend", "role"],
+        "complementScoreOrder": ["walk", "complement", "area"],
+        "roles": list(COMPLEMENT_ROLES),
+        "similar": similar,
+        "complements": complements,
+    })
 
 
 def main() -> None:
@@ -217,7 +250,7 @@ def main() -> None:
         raise SystemExit("usage: export_frontend.py ENGINE_DATA_DIR [OUTPUT_DIR]")
     source = Path(sys.argv[1]).expanduser().resolve()
     output = Path(sys.argv[2] if len(sys.argv) == 3 else "public/data/nyc").resolve()
-    required = ("hexes.geojson", "hex_metrics_summary.json", "venues_final.csv", "category_curves.json", "nta.geojson")
+    required = ("hexes.geojson", "hex_metrics_summary.json", "venues_final.csv", "category_curves.json", "nta.geojson", "place_neighbors.json")
     missing = [name for name in required if not (source / name).exists()]
     if missing:
         raise SystemExit(f"missing engine artifacts: {', '.join(missing)}")
@@ -225,7 +258,8 @@ def main() -> None:
     venue_rows = load_venue_rows(source)
     retained_ids = export_geometry(source, output, venue_rows)
     metric_files = export_metrics(source, output, retained_ids)
-    export_venues(output, venue_rows, retained_ids)
+    venue_ids = export_venues(output, venue_rows, retained_ids)
+    export_place_neighbors(source, output, venue_ids)
     shutil.copyfile(source / "nta.geojson", output / "neighborhoods.geojson")
     shutil.copyfile(source / "category_curves.json", output / "category_curves.json")
     manifest = {
@@ -233,7 +267,7 @@ def main() -> None:
         "coverageLabel": "Manhattan below 96th Street, Williamsburg, Greenpoint, and Long Island City",
         "timeModel": "typical_week", "timeResolutionMinutes": 60, "hexResolution": 10,
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "files": {"hexes": "hexes.geojson", "metricsByDay": metric_files, "venues": "venues.json", "categoryCurves": "category_curves.json", "neighborhoods": "neighborhoods.geojson"},
+        "files": {"hexes": "hexes.geojson", "metricsByDay": metric_files, "venues": "venues.json", "categoryCurves": "category_curves.json", "neighborhoods": "neighborhoods.geojson", "placeNeighbors": "place_neighbors.json"},
     }
     write_json(output / "manifest.json", manifest)
     print(f"Exported {len(retained_ids)} supported hexes and frontend artifacts to {output}")
