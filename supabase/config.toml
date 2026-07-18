@@ -1,4 +1,0 @@
-project_id = "immersion-phase1"
-
-[functions.google-places]
-verify_jwt = false
