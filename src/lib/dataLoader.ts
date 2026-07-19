@@ -26,7 +26,7 @@ export const cityDataUrl = (filename: string) => `${DATA_ROOT}${filename}`;
 
 export async function loadManifest(): Promise<DatasetManifest> {
   const manifest = await fetchJson<DatasetManifest>(cityDataUrl("manifest.json"));
-  if (manifest.schemaVersion !== 3 || manifest.city !== "nyc") {
+  if (manifest.schemaVersion !== 4 || manifest.city !== "nyc") {
     throw new Error(`Unsupported NYC dataset schema ${manifest.schemaVersion}`);
   }
   return manifest;

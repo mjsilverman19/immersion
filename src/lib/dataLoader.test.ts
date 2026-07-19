@@ -22,9 +22,9 @@ afterEach(() => {
 });
 
 describe("dataLoader against shipped artifacts", () => {
-  it("accepts the current schema-v3 manifest", async () => {
+  it("accepts the current schema-v4 manifest", async () => {
     const manifest = await loadManifest();
-    expect(manifest.schemaVersion).toBe(3);
+    expect(manifest.schemaVersion).toBe(4);
     expect(manifest.files.placeNeighbors).toBe("place_neighbors.json");
   });
 

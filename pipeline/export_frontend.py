@@ -26,7 +26,7 @@ DAYS = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")
 # DAYS tuple's position, which put engine Monday under "sun" and rotated every
 # day by one.)
 ENGINE_DOW = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 COMPLEMENT_ROLES = ("alongside", "after", "before")
 ALLOWED_OUTER = {
     "Greenpoint", "Williamsburg", "South Williamsburg", "East Williamsburg",
@@ -198,26 +198,64 @@ def export_metrics(source: Path, output: Path, retained_ids: set[str]) -> dict[s
     return metric_files
 
 
-def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str]) -> list[str]:
+def _sigmoid(z: float) -> float:
+    return 1.0 / (1.0 + math.exp(-max(-30.0, min(30.0, z))))
+
+
+def feature_scores(row: dict, fingerprint: dict | None, hex_confidence: float) -> dict:
+    """Per-venue taste features for the client, derived from the engine's place
+    fingerprint instead of a static per-category prior — so two venues in the
+    same category (even the same hex) can differ.
+
+    The fingerprint's continuous channels are z-scored across the corpus; a
+    logistic squashes each back to 0..1 (0.5 = corpus-average). `role` =
+    [anchor, density, local_rarity, city_rarity, next_strong]; `spend.price` is
+    a raw 0..1 ordinal (often null). Missing evidence falls back to the category
+    prior. evidenceConfidence starts at a floor (ecology/role/spend are
+    coordinate-based and always available) and rises with hex coverage.
+    """
+    priors = CATEGORY_PRIORS.get(row["category"], CATEGORY_PRIORS["restaurant"])
+    if fingerprint is None:
+        informal, novel, institution, solo, linger, destination = priors
+        return {
+            "informal": informal, "novel": novel, "institution": institution,
+            "soloFriendly": solo, "linger": linger, "destination": destination,
+            "evidenceConfidence": round(0.25 + 0.5 * hex_confidence, 2),
+        }
+    anchor, density, local_rarity, city_rarity, next_strong = fingerprint["role"]
+    price = fingerprint["spend"].get("price")
+    return {
+        # casual vs formal: cheaper reads informal; fall back to prior when price is unknown
+        "informal": round(1 - price, 3) if price is not None else priors[0],
+        # discovery: locally + citywide uncommon
+        "novel": round(_sigmoid(0.5 * (local_rarity + city_rarity)), 3),
+        # an established anchor (stronger than its neighbours)
+        "institution": round(_sigmoid(anchor), 3),
+        "soloFriendly": priors[3],
+        # lingering / wandering potential tracks nearby venue density
+        "linger": round(_sigmoid(density), 3),
+        # a place worth travelling to: anchor + rare + standalone
+        "destination": round(_sigmoid(0.5 * anchor + 0.3 * city_rarity + 0.2 * next_strong), 3),
+        "evidenceConfidence": round(0.4 + 0.5 * hex_confidence, 2),
+    }
+
+
+def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str], fingerprints: dict) -> list[str]:
     venues = []
     for row in venue_rows:
         if row["hex_id"] not in retained_ids:
             continue
         confidence_values = [float(row.get(key) or 0) for key in ("conf_A", "conf_L", "conf_T")]
-        priors = CATEGORY_PRIORS.get(row["category"], CATEGORY_PRIORS["restaurant"])
+        hex_confidence = sum(confidence_values) / 3
         venues.append({
             "id": row["id"], "name": row["name"],
             "latitude": round(float(row["lat"]), 6), "longitude": round(float(row["lng"]), 6),
             "h3": row["hex_id"], "neighborhoodId": row.get("nta") or None,
             "category": row["category"],
             "qualityPrior": round(float(row.get("q") or 0) / 100, 3),
-            "qualityConfidence": round(sum(confidence_values) / 3, 2),
+            "qualityConfidence": round(hex_confidence, 2),
             "qualitySource": "engine_prior",
-            "featureScores": {
-                "informal": priors[0], "novel": priors[1], "institution": priors[2],
-                "soloFriendly": priors[3], "linger": priors[4], "destination": priors[5],
-                "evidenceConfidence": 0.25,
-            },
+            "featureScores": feature_scores(row, fingerprints.get(row["id"]), hex_confidence),
         })
     write_json(output / "venues.json", venues)
     return [venue["id"] for venue in venues]
@@ -259,15 +297,16 @@ def main() -> None:
         raise SystemExit("usage: export_frontend.py ENGINE_DATA_DIR [OUTPUT_DIR]")
     source = Path(sys.argv[1]).expanduser().resolve()
     output = Path(sys.argv[2] if len(sys.argv) == 3 else "public/data/nyc").resolve()
-    required = ("hexes.geojson", "hex_metrics_summary.json", "venues_final.csv", "category_curves.json", "nta.geojson", "place_neighbors.json")
+    required = ("hexes.geojson", "hex_metrics_summary.json", "venues_final.csv", "category_curves.json", "nta.geojson", "place_neighbors.json", "place_fingerprints.json")
     missing = [name for name in required if not (source / name).exists()]
     if missing:
         raise SystemExit(f"missing engine artifacts: {', '.join(missing)}")
     output.mkdir(parents=True, exist_ok=True)
     venue_rows = load_venue_rows(source)
+    fingerprints = json.loads((source / "place_fingerprints.json").read_text())
     retained_ids = export_geometry(source, output, venue_rows)
     metric_files = export_metrics(source, output, retained_ids)
-    venue_ids = export_venues(output, venue_rows, retained_ids)
+    venue_ids = export_venues(output, venue_rows, retained_ids, fingerprints)
     export_place_neighbors(source, output, venue_ids)
     shutil.copyfile(source / "nta.geojson", output / "neighborhoods.geojson")
     shutil.copyfile(source / "category_curves.json", output / "category_curves.json")
