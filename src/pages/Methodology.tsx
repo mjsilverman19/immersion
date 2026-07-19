@@ -29,7 +29,7 @@ const Methodology = () => {
           <Method title="Venue quality">External quality evidence is an eligibility guardrail and contributes no more than 10% as a tie-breaker. It does not create a citywide leaderboard, and raw provider ratings are not shown.</Method>
         </section>
 
-        <section className="mt-10 rounded-2xl border border-border bg-card p-5">
+        <section className="brand-card mt-10 p-5">
           <h2 className="font-serif text-2xl">Current footprint</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{manifest?.coverageLabel ?? "The current NYC dataset covers a limited pilot geography."}</p>
           {manifest && <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm"><dt className="text-muted-foreground">Dataset</dt><dd>{manifest.datasetVersion}</dd><dt className="text-muted-foreground">Generated</dt><dd>{new Date(manifest.generatedAt).toLocaleDateString()}</dd><dt className="text-muted-foreground">Resolution</dt><dd>Hourly · H3 resolution {manifest.hexResolution}</dd></dl>}

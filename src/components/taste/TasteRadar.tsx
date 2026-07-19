@@ -1,3 +1,4 @@
+import { BRAND } from "@/lib/brand";
 import type { RadarEvidence, RadarProfile, TasteDimensionKey, TasteProfile } from "@/types/data";
 
 export const FIT_AXES: Array<{ key: TasteDimensionKey; low: string; high: string }> = [
@@ -58,11 +59,10 @@ export function TasteRadar({
   onShapeTaste: () => void;
 }) {
   const taste = tasteProfile ? tasteRadarProfile(tasteProfile) : null;
-  const rows = fitDimensionRows(tasteProfile, evidence);
   const usesInferredEvidence = Object.values(evidence.source).some((source) => source === "category" || source === "area");
 
   return (
-    <section className="mt-5 rounded-2xl border border-border bg-card p-4" aria-labelledby="place-fit-heading">
+    <section className="mt-5 rounded-2xl border border-white/60 bg-background/50 p-4 shadow-[0_5px_18px_rgba(36,34,31,0.04)] backdrop-blur-lg" aria-labelledby="place-fit-heading">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p id="place-fit-heading" className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
@@ -90,7 +90,7 @@ export function TasteRadar({
               key={level}
               points={polygon({ energy: level, novelty: level, wandering: level, formality: level, neighborhoodOrientation: level })}
               fill="none"
-              stroke="#D8D1C7"
+              stroke={BRAND.border}
               strokeWidth="1"
             />
           ))}
@@ -99,49 +99,22 @@ export function TasteRadar({
             const [labelX, labelY] = point(index, 1.27);
             return (
               <g key={axis.key} opacity={0.4 + evidence.confidence[axis.key] * 0.6}>
-                <line x1="100" y1="90" x2={x} y2={y} stroke="#B9B0A5" strokeWidth="1" />
-                <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="#665F58">
+                <line x1="100" y1="90" x2={x} y2={y} stroke={BRAND.border} strokeWidth="1" />
+                <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill={BRAND.muted} fontFamily="Inter">
                   {axis.high}
                 </text>
               </g>
             );
           })}
-          {taste && <polygon points={polygon(taste)} fill="rgba(196,93,62,0.14)" stroke="#C45D3E" strokeWidth="2.5" />}
+          {taste && <polygon points={polygon(taste)} fill={`${BRAND.primary}24`} stroke={BRAND.primary} strokeWidth="2.5" />}
           <polygon
             points={polygon(evidence.values)}
-            fill="rgba(26,26,26,0.04)"
-            stroke="#1A1A1A"
+            fill={`${BRAND.text}0A`}
+            stroke={BRAND.text}
             strokeWidth="2"
             strokeDasharray={usesInferredEvidence ? "5 4" : undefined}
           />
         </svg>
-      </div>
-
-      <div className="space-y-3 border-t border-border/80 pt-4">
-        {rows.map((row) => (
-          <div
-            key={row.key}
-            style={{ opacity: 0.45 + row.confidence * 0.55 }}
-            aria-label={`${row.low} to ${row.high}: this place ${Math.round(row.placeValue * 100)} percent${row.tasteValue === null ? "" : `, your taste ${Math.round(row.tasteValue * 100)} percent`}`}
-          >
-            <div className="mb-1.5 flex justify-between gap-3 text-[9px] text-muted-foreground">
-              <span>{row.low}</span><span className="text-right">{row.high}</span>
-            </div>
-            <div className="relative h-1.5 rounded-full bg-muted">
-              <span className="absolute inset-y-0 left-1/2 w-px bg-border" />
-              <span
-                className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-card bg-foreground shadow-sm"
-                style={{ left: `${row.placeValue * 100}%` }}
-              />
-              {row.tasteValue !== null && (
-                <span
-                  className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-card bg-primary shadow-sm"
-                  style={{ left: `${row.tasteValue * 100}%` }}
-                />
-              )}
-            </div>
-          </div>
-        ))}
       </div>
 
       {!taste && (
