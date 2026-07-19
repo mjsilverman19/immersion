@@ -2,27 +2,37 @@ import { useEffect, useState } from "react";
 import { Bookmark, Check, Heart, Maximize2, Minimize2, Navigation, X } from "lucide-react";
 
 import { PlaceRetrievalSections } from "@/components/sheets/PlaceRetrievalSections";
+import { Action } from "@/components/sheets/VenueSheet";
 import { TasteRadar } from "@/components/taste/TasteRadar";
-import type { ComplementResult, RankedVenue, SimilarResult, TasteProfile, UserPlaceState } from "@/types/data";
+import { standaloneRadarEvidence } from "@/lib/recommendations";
+import type { ComplementResult, SimilarResult, TasteProfile, UserPlaceState, VenueRecord } from "@/types/data";
 
-interface VenueSheetProps {
-  ranked: RankedVenue | null;
+interface PlaceSheetProps {
+  venue: VenueRecord | null;
+  /** Why this venue surfaced — set when arriving via a "more like this" / "continue from here" row. */
+  reasons: string[];
   tasteProfile: TasteProfile | null;
   state: UserPlaceState | undefined;
   onUpdate: (patch: Partial<UserPlaceState>) => void;
   onDirections: () => void;
   onClose: () => void;
-  similar?: SimilarResult[];
-  complements?: ComplementResult[];
-  onSelectPlace?: (id: string, reasons: string[]) => void;
+  similar: SimilarResult[];
+  complements: ComplementResult[];
+  onSelectPlace: (id: string, reasons: string[]) => void;
 }
 
-export function VenueSheet({ ranked, tasteProfile, state, onUpdate, onDirections, onClose, similar = [], complements = [], onSelectPlace }: VenueSheetProps) {
+/**
+ * Venue detail for places reached through retrieval ("more like this" /
+ * "continue from here") rather than the current area's ranking — often a
+ * different neighborhood, or a category the active intent doesn't rank. Mirrors
+ * VenueSheet's layout but has no area-scoped score or contributions to show, so
+ * it shows the retrieval reasons in their place.
+ */
+export function PlaceSheet({ venue, reasons, tasteProfile, state, onUpdate, onDirections, onClose, similar, complements, onSelectPlace }: PlaceSheetProps) {
   const [minimized, setMinimized] = useState(false);
   const [learningFeedback, setLearningFeedback] = useState<string | null>(null);
-  useEffect(() => { setMinimized(false); setLearningFeedback(null); }, [ranked?.venue.id]);
-  if (!ranked) return null;
-  const { venue } = ranked;
+  useEffect(() => { setMinimized(false); setLearningFeedback(null); }, [venue?.id]);
+  if (!venue) return null;
   const directions = `https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}`;
   const place = state ?? { venueId: venue.id, saved: false, visited: false, endorsed: false, updatedAt: "" };
   const confidence = venue.featureScores.evidenceConfidence >= 0.7 ? "Strong" : venue.featureScores.evidenceConfidence >= 0.4 ? "Moderate" : "Limited";
@@ -38,16 +48,16 @@ export function VenueSheet({ ranked, tasteProfile, state, onUpdate, onDirections
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">A place for your map</p>
       <h2 className="mt-1 pr-8 font-serif text-3xl leading-tight">{venue.name}</h2>
       <p className="mt-1 text-sm capitalize text-muted-foreground">{venue.category}{venue.neighborhoodId ? ` · ${venue.neighborhoodId}` : ""}</p>
-      <TasteRadar tasteProfile={tasteProfile} evidence={ranked.radarEvidence} />
+      <TasteRadar tasteProfile={tasteProfile} evidence={standaloneRadarEvidence(venue)} />
       <div className="mt-5 rounded-2xl bg-muted/65 p-4">
-        <h3 className="text-sm font-semibold">Why it appears</h3>
+        <h3 className="text-sm font-semibold">Why it's here</h3>
         <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-          {ranked.contributions.slice(0, 3).map((item) => <li key={item.feature}>• {item.label}</li>)}
-          {!ranked.contributions.length && <li>• Fits the current intent in this part of the neighborhood</li>}
+          {reasons.slice(0, 3).map((reason) => <li key={reason}>• {reason}</li>)}
+          {!reasons.length && <li>• Surfaced from a place you were exploring</li>}
         </ul>
-        <p className="mt-3 border-t border-border/70 pt-2 text-[10px] text-muted-foreground">Place evidence: {confidence}. Fit may rely partly on category and area context.</p>
+        <p className="mt-3 border-t border-border/70 pt-2 text-[10px] text-muted-foreground">Place evidence: {confidence}. This place is outside the current area ranking, so no intent score applies.</p>
       </div>
-      {onSelectPlace && <PlaceRetrievalSections similar={similar} complements={complements} onSelectPlace={onSelectPlace} />}
+      <PlaceRetrievalSections similar={similar} complements={complements} onSelectPlace={onSelectPlace} />
       <div className="mt-4 grid grid-cols-3 gap-2">
         <Action active={place.saved} label="Save" icon={<Bookmark className="h-4 w-4" />} onClick={() => { onUpdate({ saved: !place.saved }); setLearningFeedback(!place.saved ? "Saved. This will slightly improve what appears on your map." : null); }} />
         <Action active={place.visited} label="Been here" icon={<Check className="h-4 w-4" />} onClick={() => onUpdate({ visited: !place.visited })} />
@@ -58,8 +68,4 @@ export function VenueSheet({ ranked, tasteProfile, state, onUpdate, onDirections
       <a href={directions} target="_blank" rel="noreferrer" onClick={() => { onDirections(); setLearningFeedback("Directions opened. This is a stronger signal for future maps."); }} className="mt-5 flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><Navigation className="h-4 w-4" /> Directions</a>
     </aside>
   );
-}
-
-export function Action({ active, label, icon, onClick }: { active: boolean; label: string; icon: React.ReactNode; onClick: () => void }) {
-  return <button type="button" onClick={onClick} aria-pressed={active} className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-2 text-[11px] ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}>{icon}<span>{label}</span></button>;
 }

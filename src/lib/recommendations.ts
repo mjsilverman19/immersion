@@ -148,6 +148,31 @@ function venueRadarEvidence(venue: VenueRecord, draft: AreaDraft): RadarEvidence
   };
 }
 
+/**
+ * Radar evidence for a venue viewed outside any area's ranking context (e.g.
+ * surfaced through "more like this" retrieval, possibly in a neighborhood that
+ * isn't currently a recommended area). Neighborhood orientation has no area
+ * draft to draw on, so it reads as neutral with zero confidence rather than
+ * guessing.
+ */
+export function standaloneRadarEvidence(venue: VenueRecord): RadarEvidence {
+  const signals = venueTasteSignals(venue);
+  const venueConfidence = venue.featureScores.evidenceConfidence;
+  return {
+    values: {
+      energy: chartValue(signals.energy), novelty: chartValue(signals.novelty), wandering: chartValue(signals.wandering),
+      formality: chartValue(signals.formality), neighborhoodOrientation: 0.5,
+    },
+    confidence: {
+      energy: Math.max(0.35, venueConfidence), novelty: venueConfidence, wandering: venueConfidence,
+      formality: venueConfidence, neighborhoodOrientation: 0,
+    },
+    source: {
+      energy: "category", novelty: "venue", wandering: "venue", formality: "category", neighborhoodOrientation: "unknown",
+    },
+  };
+}
+
 function rankVenues(
   draft: AreaDraft,
   areaScore: number,

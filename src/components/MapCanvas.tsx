@@ -17,6 +17,12 @@ interface MapCanvasProps {
   userLocation: UserLocation | null;
   onSelectArea: (area: SelectedArea) => void;
   onSelectVenue: (venue: VenueRecord) => void;
+  /** Venues surfaced by "more like this" / "continue from here" for the currently open place, drawn as a distinct layer. */
+  retrievalVenues?: VenueRecord[];
+  /** The venue open in the citywide (non-ranked) place sheet; drawn as a focus marker and panned to. */
+  focusVenue?: VenueRecord | null;
+  /** Clicking a retrieval dot on the map. */
+  onSelectPlace?: (venue: VenueRecord) => void;
   className?: string;
 }
 
@@ -34,6 +40,11 @@ const VENUE_DOTS = "neighborhood-venue-dots";
 const TOP_VENUE_DOTS = "top-venue-dots";
 const TOP_VENUE_LABELS = "top-venue-labels";
 const USER_SOURCE = "user-location";
+const RETRIEVAL_SOURCE = "retrieval-venues";
+const RETRIEVAL_DOTS = "retrieval-venue-dots";
+const FOCUS_SOURCE = "place-focus";
+const FOCUS_HALO = "place-focus-halo";
+const FOCUS_CORE = "place-focus-core";
 
 function runAfterStyleInit(map: maplibregl.Map, task: () => void): () => void {
   const attempt = () => {
@@ -77,6 +88,14 @@ function venueGeoJson(venues: RankedVenue[]): GeoJSON.FeatureCollection {
       isRecommended: ranked.isRecommended ? 1 : 0,
       recommendationLabel: ranked.recommendationLabel,
     },
+  })) };
+}
+
+function placePointGeoJson(venues: VenueRecord[]): GeoJSON.FeatureCollection {
+  return { type: "FeatureCollection", features: venues.map((venue) => ({
+    type: "Feature", id: venue.id,
+    geometry: { type: "Point", coordinates: [venue.longitude, venue.latitude] },
+    properties: { id: venue.id, name: venue.name },
   })) };
 }
 
@@ -152,21 +171,25 @@ function splitStreetSegments(features: maplibregl.MapGeoJSONFeature[], cells: Ce
   return { type: "FeatureCollection", features: output };
 }
 
-export function MapCanvas({ geometry, areas, selectedArea, selectedVenues, mapMode, userLocation, onSelectArea, onSelectVenue, className }: MapCanvasProps) {
+export function MapCanvas({ geometry, areas, selectedArea, selectedVenues, mapMode, userLocation, onSelectArea, onSelectVenue, retrievalVenues = [], focusVenue = null, onSelectPlace, className }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const areasRef = useRef(areas);
   const venuesRef = useRef(selectedVenues);
+  const retrievalVenuesRef = useRef(retrievalVenues);
   const onSelectAreaRef = useRef(onSelectArea);
   const onSelectVenueRef = useRef(onSelectVenue);
+  const onSelectPlaceRef = useRef(onSelectPlace);
   const [ready, setReady] = useState(false);
   const [streetSegmentCount, setStreetSegmentCount] = useState(0);
   const [visibleVenueCount, setVisibleVenueCount] = useState(0);
   const [detailZoom, setDetailZoom] = useState(11.35);
   areasRef.current = areas;
   venuesRef.current = selectedVenues;
+  retrievalVenuesRef.current = retrievalVenues;
   onSelectAreaRef.current = onSelectArea;
   onSelectVenueRef.current = onSelectVenue;
+  onSelectPlaceRef.current = onSelectPlace;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -348,6 +371,50 @@ export function MapCanvas({ geometry, areas, selectedArea, selectedVenues, mapMo
     };
     return runAfterStyleInit(map, apply);
   }, [ready, userLocation]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const data = placePointGeoJson(retrievalVenues);
+    const apply = () => {
+      const source = map.getSource(RETRIEVAL_SOURCE) as GeoJSONSource | undefined;
+      if (source) { source.setData(data); return; }
+      map.addSource(RETRIEVAL_SOURCE, { type: "geojson", data, promoteId: "id" });
+      map.addLayer({ id: RETRIEVAL_DOTS, type: "circle", source: RETRIEVAL_SOURCE, paint: {
+        "circle-color": PALETTE.indigo,
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 16, 8],
+        "circle-opacity": 0.85,
+        "circle-stroke-color": PALETTE.cream, "circle-stroke-width": 1.5,
+      } });
+      map.on("mouseenter", RETRIEVAL_DOTS, () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", RETRIEVAL_DOTS, () => { map.getCanvas().style.cursor = ""; });
+      map.on("click", RETRIEVAL_DOTS, (event) => {
+        const id = event.features?.[0]?.properties?.id as string | undefined;
+        const venue = retrievalVenuesRef.current.find((item) => item.id === id);
+        if (venue) onSelectPlaceRef.current?.(venue);
+      });
+    };
+    return runAfterStyleInit(map, apply);
+  }, [ready, retrievalVenues]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const data = placePointGeoJson(focusVenue ? [focusVenue] : []);
+    const apply = () => {
+      const source = map.getSource(FOCUS_SOURCE) as GeoJSONSource | undefined;
+      if (source) source.setData(data);
+      else {
+        map.addSource(FOCUS_SOURCE, { type: "geojson", data });
+        map.addLayer({ id: FOCUS_HALO, type: "circle", source: FOCUS_SOURCE, paint: { "circle-radius": 22, "circle-color": PALETTE.rust, "circle-opacity": 0.16, "circle-blur": 0.8 } });
+        map.addLayer({ id: FOCUS_CORE, type: "circle", source: FOCUS_SOURCE, paint: { "circle-radius": 8, "circle-color": PALETTE.cream, "circle-stroke-color": PALETTE.rust, "circle-stroke-width": 3 } });
+      }
+      if (focusVenue && map.getZoom() < 13.5) {
+        map.easeTo({ center: [focusVenue.longitude, focusVenue.latitude], zoom: 14, duration: 600 });
+      }
+    };
+    return runAfterStyleInit(map, apply);
+  }, [focusVenue, ready]);
 
   return <div ref={containerRef} className={cn("h-full w-full", className)} aria-label="Interactive NYC recommendation map"><span className="sr-only" role="status">{selectedArea ? `${selectedVenues.length} places, ${selectedArea.recommendedVenues.length} emphasized recommendations, ${visibleVenueCount} currently visible place markers, and ${streetSegmentCount} typical activity street segments shown in ${selectedArea.name} at zoom ${detailZoom.toFixed(1)}` : "City recommendations shown"}</span></div>;
 }
