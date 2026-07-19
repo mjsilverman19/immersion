@@ -35,8 +35,12 @@ npm run dev
 ```
 
 The app opens directly at `/map`. MapLibre uses keyless OpenFreeMap tiles; no
-authentication or Mapbox token is required. `vercel.json` provides SPA rewrites
-and data caching.
+authentication or Mapbox token is required.
+
+`.github/workflows/deploy.yml` builds and publishes the app to GitHub Pages on
+every push to `main` (`https://mjsilverman19.github.io/immersion/`). It sets
+`VITE_BASE_PATH=/immersion/` for the Pages subpath and copies `index.html` to
+`404.html` so client-side routes resolve correctly on refresh/deep-link.
 
 ## Data boundary
 
