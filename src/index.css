@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap');
+@import '@fontsource/inter/latin-300.css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/playfair-display/latin-400.css';
+@import '@fontsource/playfair-display/latin-500.css';
+@import '@fontsource/playfair-display/latin-600.css';
+@import '@fontsource/playfair-display/latin-700.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,87 +14,89 @@
 
 @layer base {
   :root {
-    /* Immersion: Cream / Ink / Rust */
-    --background: 36 33% 97%; /* #FAF8F5 cream */
-    --foreground: 0 0% 10%; /* #1A1A1A ink */
-
-    --card: 0 0% 100%; /* white cards on cream */
-    --card-foreground: 0 0% 10%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-
-    --primary: 13 53% 50%; /* #C45D3E rust */
-    --primary-foreground: 36 33% 97%;
-
-    --secondary: 36 20% 92%; /* warm light */
-    --secondary-foreground: 0 0% 10%;
-
-    --muted: 36 15% 93%;
-    --muted-foreground: 0 0% 42%; /* #6B6B6B */
-
-    --accent: 13 53% 50%;
-    --accent-foreground: 36 33% 97%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 36 15% 88%;
-    --input: 36 15% 88%;
-    --ring: 13 53% 50%;
-
-    --radius: 0.75rem;
+    --background: 250 248 245;
+    --foreground: 36 34 31;
+    --card: 242 237 230;
+    --card-foreground: 36 34 31;
+    --popover: 250 248 245;
+    --popover-foreground: 36 34 31;
+    --primary: 29 78 216;
+    --primary-foreground: 255 255 255;
+    --secondary: 242 237 230;
+    --secondary-foreground: 36 34 31;
+    --muted: 242 237 230;
+    --muted-foreground: 107 104 98;
+    --accent: 255 184 77;
+    --accent-foreground: 36 34 31;
+    --destructive: 224 72 60;
+    --destructive-foreground: 255 255 255;
+    --border: 227 223 214;
+    --input: 227 223 214;
+    --ring: 29 78 216;
+    --radius: 1rem;
   }
 
-  .dark {
-    --background: 0 0% 7%;
-    --foreground: 36 20% 92%;
-
-    --card: 0 0% 10%;
-    --card-foreground: 36 20% 92%;
-
-    --popover: 0 0% 10%;
-    --popover-foreground: 36 20% 92%;
-
-    --primary: 13 53% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 36 20% 92%;
-
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 60%;
-
-    --accent: 13 53% 55%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 13 53% 55%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
 
+  html {
+    color-scheme: light;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
   }
 
+  button,
+  a,
+  input,
+  textarea,
+  summary {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Instrument Serif', serif;
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+@layer components {
+  .brand-surface {
+    @apply border border-white/50 bg-background/75 shadow-[0_8px_24px_rgba(36,34,31,0.075)] backdrop-blur-xl;
+    box-shadow: 0 8px 24px rgba(36, 34, 31, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .brand-card {
+    @apply rounded-2xl border border-white/50 bg-background/50 shadow-[0_6px_18px_rgba(36,34,31,0.05)] backdrop-blur-lg;
+  }
+
+  .brand-sheet {
+    @apply border border-white/60 bg-background/90 shadow-[0_18px_48px_rgba(36,34,31,0.12)] backdrop-blur-2xl;
+    box-shadow: 0 18px 48px rgba(36, 34, 31, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+
+  .place-glass {
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    background: rgba(250, 248, 245, 0.64);
+    box-shadow: 0 10px 30px rgba(36, 34, 31, 0.085), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(24px) saturate(1.12);
+    -webkit-backdrop-filter: blur(24px) saturate(1.12);
+  }
+
+  .brand-icon-button {
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/60 bg-background/70 text-foreground shadow-[0_4px_14px_rgba(36,34,31,0.06)] backdrop-blur-xl transition hover:border-primary/25 hover:bg-background/80;
+  }
+
+  .brand-primary-button {
+    @apply inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-[0_6px_18px_rgba(29,78,216,0.20)] transition hover:bg-primary/90;
   }
 }
 
 @layer utilities {
   .font-serif {
-    font-family: 'Instrument Serif', serif;
+    font-family: 'Playfair Display', Georgia, serif;
   }
   .font-sans {
     font-family: 'Inter', system-ui, sans-serif;
@@ -98,16 +108,51 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
 }
 
-/* MapLibre GL: soften controls and popups to match the paper-like surface */
 .maplibregl-popup-content {
-  border-radius: 12px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
-  border: 1px solid hsl(36, 15%, 88%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 16px !important;
+  background: rgba(250, 248, 245, 0.82) !important;
+  box-shadow: 0 10px 28px rgba(36, 34, 31, 0.09) !important;
+  backdrop-filter: blur(18px);
+  color: #24221F !important;
   font-family: 'Inter', system-ui, sans-serif;
 }
+
 .maplibregl-ctrl-group {
-  border-radius: 10px !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 14px !important;
+  background: rgba(250, 248, 245, 0.72) !important;
+  box-shadow: 0 5px 16px rgba(36, 34, 31, 0.07) !important;
+  backdrop-filter: blur(18px);
+}
+
+.maplibregl-ctrl-group button {
+  width: 44px;
+  height: 44px;
+}
+
+.maplibregl-ctrl-attrib {
+  color: #6B6862;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (max-width: 639px) {
+  button {
+    min-height: 44px;
+  }
 }

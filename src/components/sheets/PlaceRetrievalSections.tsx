@@ -18,7 +18,7 @@ export function PlaceRetrievalSections({ similar, complements, onSelectPlace }: 
       {complements.length > 0 && (
         <RetrievalSection title="Continue from here" subtitle="Nearby places that complement this one" expanded={showAllComplements} total={complements.length} onExpandedChange={setShowAllComplements}>
           {(showAllComplements ? complements : complements.slice(0, 3)).map((result) => (
-            <button key={result.venue.id} type="button" onClick={() => onSelectPlace(result.venue.id)} className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2.5 text-left hover:border-primary/50">
+            <button key={result.venue.id} type="button" onClick={() => onSelectPlace(result.venue.id)} className="flex w-full items-center gap-3 rounded-2xl border border-white/50 bg-background/40 px-3 py-2.5 text-left hover:border-primary/35 hover:bg-background/60">
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-serif text-base">{result.venue.name}</span>
                 <span className="mt-0.5 block truncate text-[11px] capitalize text-muted-foreground">{result.venue.category} · {result.reasons[0] ?? "Nearby"}</span>
@@ -31,7 +31,7 @@ export function PlaceRetrievalSections({ similar, complements, onSelectPlace }: 
       {similar.length > 0 && (
         <RetrievalSection title="More like this" subtitle="Similar places across the city" expanded={showAllSimilar} total={similar.length} onExpandedChange={setShowAllSimilar}>
           {(showAllSimilar ? similar : similar.slice(0, 3)).map((result) => (
-            <button key={result.venue.id} type="button" onClick={() => onSelectPlace(result.venue.id)} className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2.5 text-left hover:border-primary/50">
+            <button key={result.venue.id} type="button" onClick={() => onSelectPlace(result.venue.id)} className="flex w-full items-center gap-3 rounded-2xl border border-white/50 bg-background/40 px-3 py-2.5 text-left hover:border-primary/35 hover:bg-background/60">
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-serif text-base">{result.venue.name}</span>
                 <span className="mt-0.5 block truncate text-[11px] capitalize text-muted-foreground">{result.venue.category}{result.venue.neighborhoodId ? ` · ${result.venue.neighborhoodId}` : ""} · {result.reasons[0] ?? "Similar"}</span>

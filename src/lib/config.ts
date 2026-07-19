@@ -4,8 +4,8 @@
  * Phase 1 uses keyless vector tiles only — no proprietary access token.
  * Base geometry comes from OpenFreeMap (OpenMapTiles schema); glyphs come
  * from the community openmaptiles font server (which carries a serif face
- * we use for venue labels). Both are restyled into a cream / ink / rust
- * atlas surface in `mapStyle.ts`.
+ * we use for venue labels). Both are restyled into the Immersion brand
+ * surface in `mapStyle.ts`.
  */
 
 /** Keyless OpenMapTiles vector tiles (TileJSON). */
@@ -13,8 +13,8 @@ export const TILE_URL =
   import.meta.env.VITE_TILE_URL || "https://tiles.openfreemap.org/planet";
 
 /**
- * Self-hosted serif glyphs (generated from Noto Serif into /public/fonts).
- * Kept in-app so the venue and place labels render in the atlas's serif with
+ * Self-hosted Inter glyphs generated into /public/fonts.
+ * Kept in-app so venue and place labels render in the brand sans face with
  * no third-party font server dependency.
  */
 export const GLYPHS_URL =
@@ -44,13 +44,14 @@ export const MAP_CONFIG = {
  * layers, and any React chrome all draw from one source of truth.
  */
 export const PALETTE = {
-  cream: "#FAF8F5", // land / paper ground
-  creamDeep: "#EDE4D4", // water — a slightly deeper cream
-  creamPark: "#F0EEE4", // barely-there greenspace tint
-  building: "#F1EBE0", // faint plate texture
-  ink: "#1A1A1A", // linework + labels
-  rust: "#C45D3E", // locals (member) activity + venue pins
-  indigo: "#6B6E8A", // visitors (casual) activity — the muted second population
-  touristGray: "#ABA398", // saturated hexes desaturate toward this
-  lowSignal: "#E3DCCF", // flat, muted "thin data" fill
+  paper: "#FAF8F5",
+  surface: "#F2EDE6",
+  border: "#E3DFD6",
+  text: "#24221F",
+  muted: "#6B6862",
+  primary: "#1D4ED8",
+  route: "#2E7CCB",
+  park: "#A8C9A0",
+  water: "#DCEAF6",
+  highlight: "#FFB84D",
 } as const;

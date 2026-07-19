@@ -20,7 +20,7 @@ export function AreaRail({ areas, collapsed, onCollapsedChange, onSelect }: Area
   if (collapsed) {
     return (
       <div className="flex justify-center px-3">
-        <div className="flex max-w-[94vw] items-center rounded-full border border-border bg-background/94 p-1.5 pl-4 shadow-lg backdrop-blur">
+        <div className="place-glass flex max-w-[94vw] items-center rounded-full p-1.5 pl-4">
           <button type="button" onClick={() => onSelect(first.area, first.ranked.venue)} className="min-w-0 text-left">
             <span className="text-[9px] font-semibold uppercase tracking-[0.13em] text-primary">Place to try</span>
             <span className="ml-2 max-w-[52vw] truncate align-bottom font-serif text-sm">{first.ranked.venue.name}</span>
@@ -36,7 +36,7 @@ export function AreaRail({ areas, collapsed, onCollapsedChange, onSelect }: Area
 
   return (
     <div className="relative mx-auto w-full md:max-w-3xl">
-      <button type="button" onClick={() => onCollapsedChange(true)} aria-label="Minimize place recommendations" className="absolute -top-4 right-4 z-10 rounded-full border border-border bg-background p-2 text-muted-foreground shadow-md hover:text-foreground">
+      <button type="button" onClick={() => onCollapsedChange(true)} aria-label="Minimize place recommendations" className="brand-icon-button absolute -top-4 right-4 z-10 min-h-9 min-w-9 p-2 text-muted-foreground hover:text-foreground">
         <ChevronDown className="h-4 w-4" />
       </button>
       <div className="flex w-full gap-2 overflow-x-auto px-3 pb-1 scrollbar-hide" aria-label="Places to try">
@@ -45,9 +45,9 @@ export function AreaRail({ areas, collapsed, onCollapsedChange, onSelect }: Area
             key={ranked.venue.id}
             type="button"
             onClick={() => onSelect(area, ranked.venue)}
-            className="flex min-w-[230px] flex-1 items-center gap-3 rounded-2xl border border-border bg-background/94 px-3 py-3 text-left shadow-lg backdrop-blur transition hover:border-primary/50"
+            className="place-glass flex min-w-[230px] flex-1 items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:border-primary/35 hover:bg-background/75"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
               {index === 0 ? <Sparkles className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
             </span>
             <span className="min-w-0 flex-1">

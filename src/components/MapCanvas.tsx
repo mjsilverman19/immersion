@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl, { type GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import { INTENT_VISUALS, MAP_FONT_STACKS } from "@/lib/brand";
 import { MAP_CONFIG, PALETTE } from "@/lib/config";
 import { buildBaseStyle } from "@/lib/mapStyle";
 import { findAreaAtPoint } from "@/lib/mapAreaSelection";
 import { mergeParallelStreetSegments, type StreetSegmentCandidate } from "@/lib/streetGeometry";
 import { cn } from "@/lib/utils";
-import type { HexGeometryCollection, MapMode, RankedVenue, SelectedArea, UserLocation, VenueRecord } from "@/types/data";
+import type { HexGeometryCollection, Intent, MapMode, RankedVenue, SelectedArea, UserLocation, VenueRecord } from "@/types/data";
 
 interface MapCanvasProps {
   geometry: HexGeometryCollection | null;
@@ -16,6 +17,7 @@ interface MapCanvasProps {
   selectedArea: SelectedArea | null;
   selectedVenues: RankedVenue[];
   mapMode: MapMode;
+  intent: Intent;
   userLocation: UserLocation | null;
   onSelectArea: (area: SelectedArea) => void;
   onSelectVenue: (venue: VenueRecord) => void;
@@ -173,7 +175,7 @@ function splitStreetSegments(features: maplibregl.MapGeoJSONFeature[], cells: Ce
   return { type: "FeatureCollection", features: output };
 }
 
-export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, selectedVenues, mapMode, userLocation, onSelectArea, onSelectVenue, retrievalVenues = [], focusVenue = null, onSelectPlace, className }: MapCanvasProps) {
+export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, selectedVenues, mapMode, intent, userLocation, onSelectArea, onSelectVenue, retrievalVenues = [], focusVenue = null, onSelectPlace, className }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const areasRef = useRef(areas);
@@ -220,7 +222,7 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       if (source) { source.setData(data); return; }
       map.addSource(AREA_SOURCE, { type: "geojson", data, promoteId: "id" });
       map.addLayer({ id: AREA_HALO, type: "circle", source: AREA_SOURCE, paint: {
-      "circle-color": PALETTE.rust,
+      "circle-color": PALETTE.primary,
       "circle-radius": ["interpolate", ["linear"], ["zoom"],
         10, ["interpolate", ["linear"], ["get", "glowStrength"], 0, 20, 0.5, 42, 1, 68],
         12, ["interpolate", ["linear"], ["get", "glowStrength"], 0, 32, 0.5, 72, 1, 108],
@@ -233,17 +235,17 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       "circle-blur": ["case", ["==", ["get", "selected"], 1], 0.86, ["interpolate", ["linear"], ["get", "glowStrength"], 0, 0.82, 1, 0.68]],
       } });
       map.addLayer({ id: AREA_CORE, type: "circle", source: AREA_SOURCE, paint: {
-      "circle-color": PALETTE.cream,
+      "circle-color": PALETTE.paper,
       "circle-radius": ["case", ["==", ["get", "selected"], 1], 10, 7],
-      "circle-stroke-color": PALETTE.rust,
+      "circle-stroke-color": PALETTE.primary,
       "circle-stroke-width": ["+", ["case", ["==", ["get", "selected"], 1], 2.5, 1.5], ["*", ["get", "glowStrength"], 1.5]],
       "circle-opacity": 0.95,
       } });
       map.addLayer({ id: AREA_LABEL, type: "symbol", source: AREA_SOURCE, layout: {
-      "text-field": ["get", "name"], "text-font": ["Noto Serif Regular"],
+      "text-field": ["get", "name"], "text-font": [...MAP_FONT_STACKS.regular],
       "text-size": ["interpolate", ["linear"], ["zoom"], 10, 12, 14, 16],
       "text-offset": [0, 1.2], "text-anchor": "top", "text-allow-overlap": false,
-      }, paint: { "text-color": PALETTE.ink, "text-halo-color": PALETTE.cream, "text-halo-width": 1.5 } });
+      }, paint: { "text-color": PALETTE.text, "text-halo-color": PALETTE.paper, "text-halo-width": 1.5 } });
       for (const layer of [AREA_HALO, AREA_CORE, AREA_LABEL]) {
         map.on("mouseenter", layer, () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
@@ -295,7 +297,7 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       else {
         map.addSource(ACTIVE_CELL_SOURCE, { type: "geojson", data });
         map.addLayer({ id: ACTIVE_CELL_GLOW, type: "fill", source: ACTIVE_CELL_SOURCE, minzoom: 10.4, paint: {
-          "fill-color": PALETTE.rust,
+          "fill-color": PALETTE.primary,
           "fill-opacity": ["interpolate", ["linear"], ["get", "activityScore"], 0, 0, 0.35, 0.012, 0.7, 0.04, 1, 0.075],
         } });
       }
@@ -303,13 +305,13 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       if (!streetSource) map.addSource(ACTIVE_STREET_SOURCE, { type: "geojson", data: empty });
       if (!map.getLayer(ACTIVE_STREET_GLOW)) {
         map.addLayer({ id: ACTIVE_STREET_GLOW, type: "line", source: ACTIVE_STREET_SOURCE, minzoom: 12.8, layout: { "line-cap": "round", "line-join": "round" }, paint: {
-          "line-color": PALETTE.rust,
+          "line-color": PALETTE.route,
           "line-opacity": ["interpolate", ["linear"], ["get", "strength"], 0, 0, 0.4, 0.09, 0.7, 0.28, 1, 0.5],
           "line-blur": 4,
           "line-width": ["interpolate", ["linear"], ["get", "strength"], 0, 1.2, 0.5, 3.8, 0.75, 7, 1, 10],
         } });
         map.addLayer({ id: ACTIVE_STREETS, type: "line", source: ACTIVE_STREET_SOURCE, minzoom: 12.8, layout: { "line-cap": "round", "line-join": "round" }, paint: {
-          "line-color": "#A84B35",
+          "line-color": PALETTE.route,
           "line-opacity": ["interpolate", ["linear"], ["get", "strength"], 0, 0.04, 0.35, 0.14, 0.65, 0.48, 1, 0.82],
           "line-width": ["interpolate", ["linear"], ["get", "strength"], 0, 0.3, 0.45, 0.95, 0.75, 1.9, 1, 3],
         } });
@@ -343,6 +345,7 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
     const map = mapRef.current;
     if (!map || !ready) return;
     const data = venueGeoJson(selectedVenues);
+    const intentColor = INTENT_VISUALS[intent].color;
     const audit = () => {
       if (!map.getLayer(VENUE_DOTS)) { setVisibleVenueCount(0); return; }
       setVisibleVenueCount(map.queryRenderedFeatures({ layers: [VENUE_DOTS, TOP_VENUE_DOTS] }).length);
@@ -353,20 +356,22 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       else map.addSource(VENUE_SOURCE, { type: "geojson", data, promoteId: "id" });
       const shouldAttachHandlers = !map.getLayer(VENUE_DOTS);
       if (!map.getLayer(VENUE_DOTS)) map.addLayer({ id: VENUE_DOTS, type: "circle", source: VENUE_SOURCE, minzoom: 12.8, filter: [">", ["get", "rank"], 5], paint: {
-        "circle-color": PALETTE.rust,
+        "circle-color": intentColor,
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 12.8, 2.3, 16, 4],
         "circle-opacity": ["interpolate", ["linear"], ["get", "timeFit"], 0, 0.18, 0.5, 0.48, 1, 0.82],
-        "circle-stroke-color": PALETTE.cream, "circle-stroke-width": 0.8,
+        "circle-stroke-color": PALETTE.paper, "circle-stroke-width": 0.8,
       } });
       if (!map.getLayer(TOP_VENUE_DOTS)) map.addLayer({ id: TOP_VENUE_DOTS, type: "circle", source: VENUE_SOURCE, minzoom: 12.5, filter: ["<=", ["get", "rank"], 5], paint: {
-        "circle-color": PALETTE.rust, "circle-radius": ["interpolate", ["linear"], ["zoom"], 12.5, 9, 16, 12],
-        "circle-opacity": 0.98, "circle-stroke-color": PALETTE.cream, "circle-stroke-width": 2,
+        "circle-color": intentColor, "circle-radius": ["interpolate", ["linear"], ["zoom"], 12.5, 9, 16, 12],
+        "circle-opacity": 0.98, "circle-stroke-color": PALETTE.paper, "circle-stroke-width": 2,
       } });
       if (!map.getLayer(TOP_VENUE_LABELS)) map.addLayer({ id: TOP_VENUE_LABELS, type: "symbol", source: VENUE_SOURCE, minzoom: 13.4, filter: ["<=", ["get", "rank"], 5], layout: {
         "text-field": ["get", "name"],
-        "text-font": ["Noto Serif Regular"], "text-size": 11, "text-offset": [1.25, 0], "text-anchor": "left",
+        "text-font": [...MAP_FONT_STACKS.regular], "text-size": 11, "text-offset": [1.25, 0], "text-anchor": "left",
         "text-optional": true, "text-padding": 8,
-      }, paint: { "text-color": PALETTE.ink, "text-halo-color": PALETTE.cream, "text-halo-width": 2 } });
+      }, paint: { "text-color": PALETTE.text, "text-halo-color": PALETTE.paper, "text-halo-width": 2 } });
+      map.setPaintProperty(VENUE_DOTS, "circle-color", intentColor);
+      map.setPaintProperty(TOP_VENUE_DOTS, "circle-color", intentColor);
       const interactiveLayers = [VENUE_DOTS, TOP_VENUE_DOTS, TOP_VENUE_LABELS];
       if (!shouldAttachHandlers) return;
       interactiveLayers.forEach((layer) => {
@@ -382,7 +387,7 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
     const cancelStyleRetry = runAfterStyleInit(map, apply);
     map.once("idle", audit);
     return () => { cancelStyleRetry(); map.off("idle", audit); };
-  }, [ready, selectedVenues]);
+  }, [intent, ready, selectedVenues]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -393,8 +398,8 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       if (source) source.setData(data);
       else {
         map.addSource(USER_SOURCE, { type: "geojson", data });
-        map.addLayer({ id: "user-location-halo", type: "circle", source: USER_SOURCE, paint: { "circle-radius": 12, "circle-color": PALETTE.rust, "circle-opacity": 0.18 } });
-        map.addLayer({ id: "user-location-dot", type: "circle", source: USER_SOURCE, paint: { "circle-radius": 5, "circle-color": PALETTE.rust, "circle-stroke-color": PALETTE.cream, "circle-stroke-width": 2 } });
+        map.addLayer({ id: "user-location-halo", type: "circle", source: USER_SOURCE, paint: { "circle-radius": 14, "circle-color": PALETTE.highlight, "circle-opacity": 0.24 } });
+        map.addLayer({ id: "user-location-dot", type: "circle", source: USER_SOURCE, paint: { "circle-radius": 5, "circle-color": PALETTE.highlight, "circle-stroke-color": PALETTE.paper, "circle-stroke-width": 2 } });
       }
       if (userLocation) map.easeTo({ center: [userLocation.longitude, userLocation.latitude], zoom: Math.max(12, map.getZoom()), duration: 600 });
     };
@@ -410,10 +415,10 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       if (source) { source.setData(data); return; }
       map.addSource(RETRIEVAL_SOURCE, { type: "geojson", data, promoteId: "id" });
       map.addLayer({ id: RETRIEVAL_DOTS, type: "circle", source: RETRIEVAL_SOURCE, paint: {
-        "circle-color": PALETTE.indigo,
+        "circle-color": PALETTE.route,
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 16, 8],
         "circle-opacity": 0.85,
-        "circle-stroke-color": PALETTE.cream, "circle-stroke-width": 1.5,
+        "circle-stroke-color": PALETTE.paper, "circle-stroke-width": 1.5,
       } });
       map.on("mouseenter", RETRIEVAL_DOTS, () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", RETRIEVAL_DOTS, () => { map.getCanvas().style.cursor = ""; });
@@ -435,8 +440,8 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       if (source) source.setData(data);
       else {
         map.addSource(FOCUS_SOURCE, { type: "geojson", data });
-        map.addLayer({ id: FOCUS_HALO, type: "circle", source: FOCUS_SOURCE, paint: { "circle-radius": 22, "circle-color": PALETTE.rust, "circle-opacity": 0.16, "circle-blur": 0.8 } });
-        map.addLayer({ id: FOCUS_CORE, type: "circle", source: FOCUS_SOURCE, paint: { "circle-radius": 8, "circle-color": PALETTE.cream, "circle-stroke-color": PALETTE.rust, "circle-stroke-width": 3 } });
+        map.addLayer({ id: FOCUS_HALO, type: "circle", source: FOCUS_SOURCE, paint: { "circle-radius": 22, "circle-color": PALETTE.highlight, "circle-opacity": 0.22, "circle-blur": 0.8 } });
+        map.addLayer({ id: FOCUS_CORE, type: "circle", source: FOCUS_SOURCE, paint: { "circle-radius": 8, "circle-color": PALETTE.paper, "circle-stroke-color": PALETTE.highlight, "circle-stroke-width": 3 } });
       }
       if (focusVenue && map.getZoom() < 13.5) {
         map.easeTo({ center: [focusVenue.longitude, focusVenue.latitude], zoom: 14, duration: 600 });

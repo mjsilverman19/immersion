@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Info, LocateFixed, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, LocateFixed, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { CategoryChips } from "@/components/CategoryChips";
 import { MapCanvas } from "@/components/MapCanvas";
 import { AreaRail } from "@/components/map/AreaRail";
 import { MapLoadingState } from "@/components/map/MapLoadingState";
@@ -15,6 +14,7 @@ import { TasteSummary } from "@/components/taste/TasteSummary";
 import { useCityData } from "@/hooks/useCityData";
 import { useTasteProfile } from "@/hooks/useTasteProfile";
 import { useUserPlaceState } from "@/hooks/useUserPlaceState";
+import { INTENT_ORDER, INTENT_VISUALS } from "@/lib/brand";
 import { lensWeightsFromTaste, rankComplements, rankSimilar } from "@/lib/placeRetrieval";
 import { buildAreaRecommendations, standaloneRadarEvidence } from "@/lib/recommendations";
 import { localUserStorage } from "@/lib/storage";
@@ -37,7 +37,7 @@ const MapView = () => {
   const [showTasteNudge, setShowTasteNudge] = useState(true);
   const [showTasteReveal, setShowTasteReveal] = useState(false);
   const [areaRailCollapsed, setAreaRailCollapsed] = useState(false);
-  const [legendOpen, setLegendOpen] = useState(false);
+  const [intentMenuOpen, setIntentMenuOpen] = useState(false);
   const city = useCityData(day);
   const { tasteProfile, setTasteProfile, learnFromEvidence } = useTasteProfile();
   const { places, updatePlace } = useUserPlaceState();
@@ -57,7 +57,7 @@ const MapView = () => {
   const areas = allAreas.slice(0, 3);
   const selectedArea = allAreas.find((area) => area.id === selectedAreaId) ?? null;
   const selectedRankedVenue = selectedArea?.mapVenues.find((item) => item.venue.id === selectedVenueId) ?? null;
-  const glowUsesTaste = areas.some((area) => area.glowBasis === "taste");
+  const activeIntentVisual = INTENT_VISUALS[intent];
 
   const venuesById = useMemo(() => new Map(city.venues.map((venue) => [venue.id, venue])), [city.venues]);
   const citySelectedVenue = citySelectedVenueId ? venuesById.get(citySelectedVenueId) ?? null : null;
@@ -175,36 +175,63 @@ const MapView = () => {
 
   return (
     <main className="relative h-[100dvh] w-full overflow-hidden bg-background">
-      <MapCanvas className="absolute inset-0" geometry={city.geometry} areas={areas} selectableAreas={allAreas} selectedArea={selectedArea} selectedVenues={selectedArea?.mapVenues ?? []} mapMode={mapMode} userLocation={userLocation} onSelectArea={(area) => { setSelectedVenueId(null); setCitySelectedVenueId(null); setSelectedAreaId(area.id); }} onSelectVenue={selectVenue} retrievalVenues={retrievalVenues} focusVenue={citySelectedVenue} onSelectPlace={selectPlaceFromMap} />
+      <MapCanvas className="absolute inset-0" geometry={city.geometry} areas={areas} selectableAreas={allAreas} selectedArea={selectedArea} selectedVenues={selectedArea?.mapVenues ?? []} mapMode={mapMode} intent={intent} userLocation={userLocation} onSelectArea={(area) => { setSelectedVenueId(null); setCitySelectedVenueId(null); setSelectedAreaId(area.id); }} onSelectVenue={selectVenue} retrievalVenues={retrievalVenues} focusVenue={citySelectedVenue} onSelectPlace={selectPlaceFromMap} />
       <MapLoadingState progress={city.progress} label={city.loadingLabel} error={city.error} />
 
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-3 md:p-5">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:p-5">
         <div className="flex items-start justify-between gap-2">
-          <div className="pointer-events-auto rounded-2xl border border-border bg-background/92 px-4 py-2.5 shadow-md backdrop-blur"><h1 className="font-serif text-2xl italic leading-none">immersion</h1><p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">New York City</p></div>
-          <div className="pointer-events-auto flex flex-wrap justify-end gap-2">
-            <button type="button" onClick={findMe} disabled={locationStatus === "locating"} className={cn("flex items-center gap-1.5 rounded-full border border-border bg-background/92 px-3 py-2 text-xs shadow-md backdrop-blur", locationStatus === "ready" && "border-primary text-primary")}><LocateFixed className="h-4 w-4" />{locationStatus === "locating" ? "Finding you…" : locationStatus === "ready" ? "Near you" : "Near me"}</button>
-            <button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} className="flex items-center gap-1.5 rounded-full border border-border bg-background/92 px-3 py-2 text-xs shadow-md backdrop-blur"><Sparkles className="h-4 w-4 text-primary" />{tasteProfile ? "Your map ✓" : "Shape my map"}</button>
-            <button type="button" onClick={() => setLegendOpen((open) => !open)} aria-expanded={legendOpen} className="flex items-center gap-1.5 rounded-full border border-border bg-background/92 px-3 py-2 text-xs shadow-md backdrop-blur"><Info className="h-4 w-4" /> Map key</button>
+          <div className="brand-surface pointer-events-auto rounded-2xl px-4 py-2.5"><h1 className="font-serif text-2xl font-semibold leading-none tracking-[-0.035em]">immersion</h1><p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">New York City</p></div>
+          <div className="pointer-events-auto flex items-center justify-end gap-1.5 sm:gap-2">
+            <button type="button" onClick={findMe} disabled={locationStatus === "locating"} aria-label={locationStatus === "locating" ? "Finding your location" : locationStatus === "ready" ? "Using your location" : "Find recommendations near me"} className={cn("brand-icon-button text-xs sm:gap-1.5 sm:px-3", locationStatus === "ready" && "border-primary text-primary")}><LocateFixed className="h-4 w-4" /><span className="hidden sm:inline">{locationStatus === "locating" ? "Finding you…" : locationStatus === "ready" ? "Near you" : "Near me"}</span></button>
+            <button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} aria-label={tasteProfile ? "Adjust your map" : "Shape my map"} className="brand-icon-button text-xs sm:gap-1.5 sm:px-3"><Sparkles className="h-4 w-4 text-primary" /><span className="hidden sm:inline">{tasteProfile ? "Your map ✓" : "Shape my map"}</span></button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIntentMenuOpen((open) => !open)}
+                aria-expanded={intentMenuOpen}
+                aria-haspopup="menu"
+                className="brand-icon-button gap-1.5 px-2.5 text-xs sm:px-3"
+              >
+                <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: activeIntentVisual.color }} />
+                <span>{activeIntentVisual.label}</span>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", intentMenuOpen && "rotate-180")} />
+              </button>
+              {intentMenuOpen && (
+                <div role="menu" aria-label="Choose what to explore" className="brand-surface absolute right-0 top-[calc(100%+0.5rem)] z-50 w-44 rounded-2xl p-1.5">
+                  {INTENT_ORDER.map((intentId) => {
+                    const visual = INTENT_VISUALS[intentId];
+                    const selected = intentId === intent;
+                    return (
+                      <button
+                        key={intentId}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={selected}
+                        onClick={() => { setIntent(intentId); setIntentMenuOpen(false); }}
+                        className={cn("flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition hover:bg-background/70", selected && "bg-background/60")}
+                      >
+                        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: visual.color }} />
+                        <span className="flex-1">{visual.label}</span>
+                        {selected && <Check className="h-3.5 w-3.5 text-primary" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div className="pointer-events-auto mt-3"><CategoryChips active={intent} onChange={setIntent} /></div>
-        {tasteProfile && <div className="pointer-events-auto mt-2 flex w-fit max-w-[92vw] flex-wrap items-center rounded-2xl border border-border bg-background/92 p-1 shadow-sm backdrop-blur"><button type="button" onClick={() => setMapMode("personalized")} aria-pressed={mapMode === "personalized"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "personalized" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Your map</button><button type="button" onClick={() => setMapMode("baseline")} aria-pressed={mapMode === "baseline"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "baseline" ? "bg-foreground text-background" : "text-muted-foreground")}>City baseline</button><span className="px-2 text-[10px] text-muted-foreground">{tasteProfile.wandering >= 0 ? "Room to wander" : "Destination-led"} · {tasteProfile.formality <= 0 ? "Informal" : "Planned occasions"} · {tasteProfile.energy >= 0 ? "Lively" : "Quieter"}</span><button type="button" onClick={() => { setTasteProfile(null); setMapMode("baseline"); }} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground" aria-label="Reset taste"><SlidersHorizontal className="h-3.5 w-3.5" /></button></div>}
+        {tasteProfile && <div className="brand-surface pointer-events-auto mt-2 flex w-fit max-w-[92vw] flex-wrap items-center rounded-2xl p-1"><button type="button" onClick={() => setMapMode("personalized")} aria-pressed={mapMode === "personalized"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "personalized" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Your map</button><button type="button" onClick={() => setMapMode("baseline")} aria-pressed={mapMode === "baseline"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "baseline" ? "bg-foreground text-background" : "text-muted-foreground")}>City baseline</button><span className="px-2 text-[10px] text-muted-foreground">{tasteProfile.wandering >= 0 ? "Room to wander" : "Destination-led"} · {tasteProfile.formality <= 0 ? "Informal" : "Planned occasions"} · {tasteProfile.energy >= 0 ? "Lively" : "Quieter"}</span><button type="button" onClick={() => { setTasteProfile(null); setMapMode("baseline"); }} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground" aria-label="Reset taste"><SlidersHorizontal className="h-3.5 w-3.5" /></button></div>}
+        {tasteProfile === null && showTasteNudge && !selectedArea && <div className="brand-surface pointer-events-auto mt-2.5 w-[min(86vw,300px)] rounded-2xl p-4"><p className="font-serif text-xl font-medium leading-snug">Make this map more yours with 5 quick choices.</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} className="brand-primary-button min-h-10 px-3 py-2 text-xs">Shape my map</button><button type="button" onClick={() => setShowTasteNudge(false)} className="min-h-10 rounded-full px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-card">Explore first</button></div></div>}
       </header>
 
-      {legendOpen && <aside className="absolute right-3 top-[150px] z-40 w-[min(88vw,260px)] rounded-2xl border border-border bg-background/96 p-4 shadow-xl backdrop-blur md:right-5">
-        <button type="button" onClick={() => setLegendOpen(false)} aria-label="Close map key" className="absolute right-2 top-2 rounded-full p-2 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Map view</p>
-        <dl className="mt-3 space-y-2 text-xs"><div className="flex gap-2"><dt className="w-20 shrink-0 font-medium">Light wash</dt><dd className="text-muted-foreground">More typical activity at the selected time</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 font-medium">Rust glow</dt><dd className="text-muted-foreground">{glowUsesTaste ? "Areas likely to fit your taste" : "Busy, well-supported areas at this time"}</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 font-medium">Rust streets</dt><dd className="text-muted-foreground">Stronger typical activity corridors—not live traffic</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 font-medium">Rust dots</dt><dd className="text-muted-foreground">Places matching the current intent</dd></div><div className="flex gap-2"><dt className="w-20 shrink-0 font-medium">Faded areas</dt><dd className="text-muted-foreground">Lower evidence confidence</dd></div></dl>
-      </aside>}
+      {(locationStatus === "denied" || locationStatus === "unsupported") && <div role="status" className="brand-surface absolute right-3 top-28 z-20 max-w-[250px] rounded-xl px-3 py-2 text-[11px] text-muted-foreground">Location isn’t available. Recommendations still follow the visible NYC coverage.</div>}
+      {locationStatus === "outside" && <div role="status" className="brand-surface absolute right-3 top-28 z-20 max-w-[250px] rounded-xl px-3 py-2 text-[11px] text-muted-foreground">You’re outside the supported NYC coverage. Move the map back to New York to explore neighborhood recommendations.</div>}
 
-      {tasteProfile === null && showTasteNudge && !selectedArea && <div className="absolute left-3 top-[138px] z-20 w-[min(86vw,290px)] rounded-2xl border border-border bg-background/94 p-4 shadow-xl backdrop-blur md:left-5 md:top-[146px]"><p className="font-serif text-xl">Make this map more yours with 5 quick choices.</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} className="rounded-full bg-primary px-3 py-2 text-xs font-medium text-primary-foreground">Shape my map</button><button type="button" onClick={() => setShowTasteNudge(false)} className="rounded-full px-3 py-2 text-xs text-muted-foreground hover:bg-muted">Explore first</button></div></div>}
-      {(locationStatus === "denied" || locationStatus === "unsupported") && <div role="status" className="absolute right-3 top-28 z-20 max-w-[250px] rounded-xl border border-border bg-background/94 px-3 py-2 text-[11px] text-muted-foreground shadow-md">Location isn’t available. Recommendations still follow the visible NYC coverage.</div>}
-      {locationStatus === "outside" && <div role="status" className="absolute right-3 top-28 z-20 max-w-[250px] rounded-xl border border-border bg-background/94 px-3 py-2 text-[11px] text-muted-foreground shadow-md">You’re outside the supported NYC coverage. Move the map back to New York to explore neighborhood recommendations.</div>}
-
-      {!selectedRankedVenue && !citySelectedVenue && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 pb-3 md:pb-5">
+      {!selectedRankedVenue && !citySelectedVenue && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 safe-bottom md:pb-5">
         {!selectedArea && areas.length > 0 && <div className="pointer-events-auto w-full"><AreaRail areas={areas} collapsed={areaRailCollapsed} onCollapsedChange={setAreaRailCollapsed} onSelect={(area, venue) => { setSelectedAreaId(area.id); setSelectedVenueId(venue.id); setCitySelectedVenueId(null); }} /></div>}
         <div className="pointer-events-auto w-full max-w-md px-3"><TypicalTimeControl day={day} hour={hour} onDayChange={setDay} onHourChange={setHour} /></div>
-        {city.manifest && <div className="pointer-events-auto rounded-full border border-border bg-background/88 px-3 py-1 text-[9px] text-muted-foreground shadow-sm backdrop-blur">Typical-week model · Dataset {city.manifest.datasetVersion} · <Link to="/methodology" className="underline underline-offset-2">methodology</Link></div>}
+        {city.manifest && <div className="pointer-events-auto rounded-full border border-white/50 bg-background/60 px-3 py-1 text-[9px] text-muted-foreground shadow-sm backdrop-blur-xl">Typical-week model · Dataset {city.manifest.datasetVersion} · <Link to="/methodology" className="underline underline-offset-2">methodology</Link></div>}
       </div>}
 
       <AreaSheet selected={selectedArea} day={day} hour={hour} onClose={() => setSelectedAreaId(null)} onSelectVenue={selectVenue} />

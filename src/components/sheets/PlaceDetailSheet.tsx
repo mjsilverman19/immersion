@@ -59,7 +59,7 @@ export function PlaceDetailSheet({
 
   if (minimized) {
     return (
-      <aside className="absolute bottom-3 left-1/2 z-50 flex max-w-[92vw] -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-background/98 p-1.5 pl-4 shadow-xl backdrop-blur md:bottom-5 md:left-5 md:translate-x-0">
+      <aside className="place-glass absolute bottom-3 left-1/2 z-50 flex max-w-[92vw] -translate-x-1/2 items-center gap-2 rounded-full p-1.5 pl-4 md:bottom-5 md:left-5 md:translate-x-0">
         <button type="button" onClick={() => setMinimized(false)} className="min-w-0 text-left">
           <span className="text-[9px] font-semibold uppercase tracking-[0.13em] text-primary">Place</span>
           <span className="ml-2 max-w-[55vw] truncate align-bottom font-serif text-sm">{venue.name}</span>
@@ -75,7 +75,7 @@ export function PlaceDetailSheet({
   }
 
   return (
-    <aside className="absolute inset-x-2 bottom-2 z-50 mx-auto max-h-[82dvh] max-w-md overflow-y-auto rounded-3xl border border-border bg-background/98 shadow-2xl backdrop-blur md:inset-x-auto md:bottom-5 md:left-5 md:w-[400px]">
+    <aside className="place-glass absolute inset-x-2 bottom-2 z-50 mx-auto max-h-[calc(100dvh-7.5rem)] max-w-md overflow-y-auto rounded-3xl md:inset-x-auto md:bottom-5 md:left-5 md:max-h-[82dvh] md:w-[400px]">
       <div className="p-5 pb-0">
         <button type="button" onClick={onClose} aria-label="Close place details" className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground hover:bg-muted">
           <X className="h-4 w-4" />
@@ -143,7 +143,7 @@ export function PlaceDetailSheet({
         />
       </div>
 
-      <div className="sticky bottom-0 mt-5 border-t border-border bg-background/95 px-5 pb-4 pt-3 backdrop-blur">
+      <div className="sticky bottom-0 mt-5 border-t border-white/50 bg-background/75 px-5 pb-4 pt-3 backdrop-blur-xl">
         <a
           href={googleMapsPlaceUrl(venue)}
           target="_blank"
@@ -152,7 +152,7 @@ export function PlaceDetailSheet({
             onViewOnMaps();
             setLearningFeedback("Opened in Google Maps.");
           }}
-          className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:brightness-95"
+          className="brand-primary-button flex items-center justify-center gap-2 text-sm"
         >
           <ExternalLink className="h-4 w-4" /> View on Google Maps
         </a>
@@ -167,7 +167,7 @@ function PlaceAction({ active, label, icon, onClick }: { active: boolean; label:
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex min-h-14 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}
+      className={`flex min-h-14 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] ${active ? "border-primary bg-primary text-primary-foreground" : "border-white/50 bg-background/40 text-foreground hover:border-primary/35 hover:bg-background/60"}`}
     >
       {icon}<span>{label}</span>
     </button>

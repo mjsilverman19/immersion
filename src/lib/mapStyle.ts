@@ -1,18 +1,17 @@
 import type { StyleSpecification } from "maplibre-gl";
 
+import { MAP_FONT_STACKS } from "@/lib/brand";
 import { GLYPHS_URL, PALETTE, TILE_URL } from "@/lib/config";
 
 /**
- * A cream / ink base style built on the keyless OpenMapTiles vector source.
+ * A paper / ink base style built on the keyless OpenMapTiles vector source.
  *
- * The goal is a hand-tinted atlas plate: cream land, a slightly deeper cream
- * water, hairline ink linework, and serif ink labels — nothing else. Default
+ * The goal is a hand-tinted atlas plate: paper land, cool blue water,
+ * hairline ink linework, and quiet sans labels — nothing else. Default
  * POI icons, transit, colored landuse, and highway shields are simply never
  * added, so the base reads nearly monochrome before the data layers go on.
  */
 export function buildBaseStyle(): StyleSpecification {
-  const SERIF = ["Noto Serif Regular"];
-
   return {
     version: 8,
     glyphs: GLYPHS_URL,
@@ -29,16 +28,16 @@ export function buildBaseStyle(): StyleSpecification {
       {
         id: "bg",
         type: "background",
-        paint: { "background-color": PALETTE.cream },
+        paint: { "background-color": PALETTE.paper },
       },
 
-      // Greenspace — the faintest warm tint, just enough to feel a park.
+      // Greenspace uses the brand park tint without overpowering recommendations.
       {
         id: "park",
         type: "fill",
         source: "omt",
         "source-layer": "park",
-        paint: { "fill-color": PALETTE.creamPark, "fill-opacity": 0.7 },
+        paint: { "fill-color": PALETTE.park, "fill-opacity": 0.62 },
       },
       {
         id: "landcover-wood",
@@ -46,16 +45,16 @@ export function buildBaseStyle(): StyleSpecification {
         source: "omt",
         "source-layer": "landcover",
         filter: ["in", ["get", "class"], ["literal", ["wood", "grass"]]],
-        paint: { "fill-color": PALETTE.creamPark, "fill-opacity": 0.5 },
+        paint: { "fill-color": PALETTE.park, "fill-opacity": 0.42 },
       },
 
-      // Water — a deeper cream so it separates from land without color.
+      // Water separates clearly from paper land using the brand blue tint.
       {
         id: "water",
         type: "fill",
         source: "omt",
         "source-layer": "water",
-        paint: { "fill-color": PALETTE.creamDeep },
+        paint: { "fill-color": PALETTE.water },
       },
       {
         id: "waterway",
@@ -63,7 +62,7 @@ export function buildBaseStyle(): StyleSpecification {
         source: "omt",
         "source-layer": "waterway",
         paint: {
-          "line-color": PALETTE.creamDeep,
+          "line-color": PALETTE.water,
           "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.5, 16, 2],
         },
       },
@@ -76,9 +75,9 @@ export function buildBaseStyle(): StyleSpecification {
         "source-layer": "building",
         minzoom: 14,
         paint: {
-          "fill-color": PALETTE.building,
+          "fill-color": PALETTE.surface,
           "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0, 15.5, 0.5],
-          "fill-outline-color": "rgba(26,26,26,0.04)",
+          "fill-outline-color": PALETTE.border,
         },
       },
 
@@ -92,7 +91,7 @@ export function buildBaseStyle(): StyleSpecification {
         filter: ["!=", ["get", "class"], "ferry"],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": PALETTE.ink,
+          "line-color": PALETTE.text,
           "line-opacity": [
             "interpolate",
             ["linear"],
@@ -157,7 +156,7 @@ export function buildBaseStyle(): StyleSpecification {
         filter: ["==", ["get", "class"], "rail"],
         minzoom: 12,
         paint: {
-          "line-color": PALETTE.ink,
+          "line-color": PALETTE.muted,
           "line-opacity": 0.18,
           "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.4, 18, 1.2],
           "line-dasharray": [3, 3],
@@ -172,14 +171,14 @@ export function buildBaseStyle(): StyleSpecification {
         "source-layer": "boundary",
         filter: ["<=", ["get", "admin_level"], 6],
         paint: {
-          "line-color": PALETTE.ink,
+          "line-color": PALETTE.muted,
           "line-opacity": 0.15,
           "line-dasharray": [2, 2],
           "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.4, 16, 1],
         },
       },
 
-      // Water labels — italic-feeling serif ink.
+      // Water labels use the map sans face and route blue.
       {
         id: "water-labels",
         type: "symbol",
@@ -187,20 +186,20 @@ export function buildBaseStyle(): StyleSpecification {
         "source-layer": "water_name",
         layout: {
           "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
-          "text-font": SERIF,
+          "text-font": [...MAP_FONT_STACKS.regular],
           "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 16, 14],
           "text-letter-spacing": 0.1,
           "text-max-width": 6,
         },
         paint: {
-          "text-color": PALETTE.ink,
+          "text-color": PALETTE.route,
           "text-opacity": 0.5,
-          "text-halo-color": PALETTE.creamDeep,
+          "text-halo-color": PALETTE.water,
           "text-halo-width": 1,
         },
       },
 
-      // Place labels — neighborhoods, towns, cities — in serif ink.
+      // Place labels — neighborhoods, towns, cities — in Inter.
       {
         id: "place-labels",
         type: "symbol",
@@ -213,7 +212,7 @@ export function buildBaseStyle(): StyleSpecification {
         ],
         layout: {
           "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
-          "text-font": SERIF,
+          "text-font": [...MAP_FONT_STACKS.regular],
           "text-size": [
             "interpolate",
             ["linear"],
@@ -234,7 +233,7 @@ export function buildBaseStyle(): StyleSpecification {
           ],
         },
         paint: {
-          "text-color": PALETTE.ink,
+          "text-color": PALETTE.text,
           // City / borough names fade out once you're inside the city (z12+), so
           // "New York" / "Brooklyn" don't shout over the neighbourhood plate;
           // neighbourhood labels stay legible throughout.
@@ -247,7 +246,7 @@ export function buildBaseStyle(): StyleSpecification {
             12,
             ["case", ["in", ["get", "class"], ["literal", ["city", "town"]]], 0, 0.55],
           ],
-          "text-halo-color": PALETTE.cream,
+          "text-halo-color": PALETTE.paper,
           "text-halo-width": 1.4,
         },
       },
