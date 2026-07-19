@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 
 import { tasteProfileFromAnswers } from "@/lib/tasteProfile";
 import type { TasteDimensionKey, TasteProfile } from "@/types/data";
@@ -35,14 +35,13 @@ interface TasteFlowProps {
   onComplete: (profile: TasteProfile) => void;
 }
 
-export function TasteFlow({ open, surfacedVenues, onClose, onPreview, onComplete }: TasteFlowProps) {
+export function TasteFlow({ open, onClose, onPreview, onComplete }: TasteFlowProps) {
   const [started, setStarted] = useState(false);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Partial<Record<TasteDimensionKey, number>>>({});
-  const [learningMessage, setLearningMessage] = useState("Your first choice will begin reshaping the map.");
   const flips = useMemo(() => QUESTIONS.map(() => Math.random() >= 0.5), [open]);
   useEffect(() => {
-    if (!open) { setStarted(false); setIndex(0); setAnswers({}); setLearningMessage("Your first choice will begin reshaping the map."); }
+    if (!open) { setStarted(false); setIndex(0); setAnswers({}); }
   }, [open]);
   if (!open) return null;
   const question = QUESTIONS[index];
@@ -56,7 +55,6 @@ export function TasteFlow({ open, surfacedVenues, onClose, onPreview, onComplete
     else next[question.dimension] = value;
     const message = learnedCopy(question.dimension, value);
     setAnswers(next);
-    setLearningMessage(message);
     if (index < QUESTIONS.length - 1) {
       onPreview(tasteProfileFromAnswers(next), message);
       setIndex(index + 1);
@@ -84,12 +82,6 @@ export function TasteFlow({ open, surfacedVenues, onClose, onPreview, onComplete
           {choices.map((choice) => <button key={choice.value} type="button" onClick={() => answer(choice.value)} className="min-h-20 rounded-2xl border border-white/50 bg-background/40 px-4 py-4 text-left font-serif text-lg leading-snug transition hover:border-primary/40 hover:bg-background/60">{choice.label}</button>)}
         </div>
         <div className="mt-4 flex justify-center gap-5 text-sm"><button type="button" onClick={() => answer(0)} className="text-foreground underline-offset-4 hover:underline">Both</button><button type="button" onClick={() => answer(undefined)} className="text-muted-foreground underline-offset-4 hover:underline">Skip</button></div>
-        <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-3">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary">Learning your map</p>
-          <p className="mt-1 text-sm">{learningMessage}</p>
-          {!!surfacedVenues.length && <p className="mt-2 text-[11px] text-muted-foreground">Beginning to surface: {surfacedVenues.slice(0, 2).join(" · ")}</p>}
-          <div className="mt-3 flex flex-wrap gap-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"><span className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Applied now</span><span className="flex items-center gap-1"><Check className="h-3 w-3 text-primary" /> Remembered for future maps</span></div>
-        </div>
         <div className="mt-5 flex gap-1">{QUESTIONS.map((item, step) => <span key={item.dimension} className={`h-1 flex-1 rounded-full ${step <= index ? "bg-primary" : "bg-muted"}`} />)}</div>
       </>}
     </section>

@@ -36,6 +36,7 @@ const MapView = () => {
   const [previewTasteProfile, setPreviewTasteProfile] = useState<TasteProfile | null>(null);
   const [showTasteNudge, setShowTasteNudge] = useState(true);
   const [showTasteReveal, setShowTasteReveal] = useState(false);
+  const [tasteControlsOpen, setTasteControlsOpen] = useState(false);
   const [areaRailCollapsed, setAreaRailCollapsed] = useState(false);
   const [intentMenuOpen, setIntentMenuOpen] = useState(false);
   const city = useCityData(day);
@@ -221,7 +222,31 @@ const MapView = () => {
             </div>
           </div>
         </div>
-        {tasteProfile && <div className="brand-surface pointer-events-auto mt-2 flex w-fit max-w-[92vw] flex-wrap items-center rounded-2xl p-1"><button type="button" onClick={() => setMapMode("personalized")} aria-pressed={mapMode === "personalized"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "personalized" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Your map</button><button type="button" onClick={() => setMapMode("baseline")} aria-pressed={mapMode === "baseline"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "baseline" ? "bg-foreground text-background" : "text-muted-foreground")}>City baseline</button><span className="px-2 text-[10px] text-muted-foreground">{tasteProfile.wandering >= 0 ? "Room to wander" : "Destination-led"} · {tasteProfile.formality <= 0 ? "Informal" : "Planned occasions"} · {tasteProfile.energy >= 0 ? "Lively" : "Quieter"}</span><button type="button" onClick={() => { setTasteProfile(null); setMapMode("baseline"); }} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground" aria-label="Reset taste"><SlidersHorizontal className="h-3.5 w-3.5" /></button></div>}
+        {tasteProfile && <>
+          <div className="pointer-events-auto mt-2 sm:hidden">
+            <button
+              type="button"
+              onClick={() => setTasteControlsOpen((open) => !open)}
+              aria-expanded={tasteControlsOpen}
+              className="brand-surface flex min-h-10 items-center gap-2 rounded-full px-3 py-2 text-[11px] font-semibold"
+            >
+              <span className={cn("h-2 w-2 rounded-full", mapMode === "personalized" ? "bg-primary" : "bg-foreground")} />
+              {mapMode === "personalized" ? "Your map" : "City baseline"}
+              <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+            {tasteControlsOpen && <div className="brand-surface mt-1.5 w-[min(88vw,330px)] rounded-2xl p-2.5">
+              <div className="flex gap-1">
+                <button type="button" onClick={() => { setMapMode("personalized"); setTasteControlsOpen(false); }} aria-pressed={mapMode === "personalized"} className={cn("min-h-10 flex-1 rounded-full px-3 py-2 text-[11px] font-medium", mapMode === "personalized" ? "bg-primary text-primary-foreground" : "hover:bg-background/60")}>Your map</button>
+                <button type="button" onClick={() => { setMapMode("baseline"); setTasteControlsOpen(false); }} aria-pressed={mapMode === "baseline"} className={cn("min-h-10 flex-1 rounded-full px-3 py-2 text-[11px] font-medium", mapMode === "baseline" ? "bg-foreground text-background" : "hover:bg-background/60")}>City baseline</button>
+              </div>
+              <div className="mt-2 flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
+                <span className="min-w-0 flex-1">{tasteProfile.wandering >= 0 ? "Room to wander" : "Destination-led"} · {tasteProfile.formality <= 0 ? "Informal" : "Planned occasions"} · {tasteProfile.energy >= 0 ? "Lively" : "Quieter"}</span>
+                <button type="button" onClick={() => { setTasteProfile(null); setMapMode("baseline"); setTasteControlsOpen(false); }} className="shrink-0 rounded-full p-2 hover:bg-background/60" aria-label="Reset taste"><SlidersHorizontal className="h-3.5 w-3.5" /></button>
+              </div>
+            </div>}
+          </div>
+          <div className="brand-surface pointer-events-auto mt-2 hidden w-fit max-w-[92vw] flex-wrap items-center rounded-2xl p-1 sm:flex"><button type="button" onClick={() => setMapMode("personalized")} aria-pressed={mapMode === "personalized"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "personalized" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Your map</button><button type="button" onClick={() => setMapMode("baseline")} aria-pressed={mapMode === "baseline"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "baseline" ? "bg-foreground text-background" : "text-muted-foreground")}>City baseline</button><span className="px-2 text-[10px] text-muted-foreground">{tasteProfile.wandering >= 0 ? "Room to wander" : "Destination-led"} · {tasteProfile.formality <= 0 ? "Informal" : "Planned occasions"} · {tasteProfile.energy >= 0 ? "Lively" : "Quieter"}</span><button type="button" onClick={() => { setTasteProfile(null); setMapMode("baseline"); }} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground" aria-label="Reset taste"><SlidersHorizontal className="h-3.5 w-3.5" /></button></div>
+        </>}
         {tasteProfile === null && showTasteNudge && !selectedArea && <div className="brand-surface pointer-events-auto mt-2.5 w-[min(86vw,300px)] rounded-2xl p-4"><p className="font-serif text-xl font-medium leading-snug">Make this map more yours with 5 quick choices.</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} className="brand-primary-button min-h-10 px-3 py-2 text-xs">Shape my map</button><button type="button" onClick={() => setShowTasteNudge(false)} className="min-h-10 rounded-full px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-card">Explore first</button></div></div>}
       </header>
 
