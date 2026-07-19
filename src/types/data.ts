@@ -198,7 +198,7 @@ export interface UserPlaceState {
   saved: boolean;
   visited: boolean;
   endorsed: boolean;
-  directionsRequested?: number;
+  mapViews?: number;
   note?: string;
   bestFor?: string[];
   updatedAt: string;

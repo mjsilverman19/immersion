@@ -4,6 +4,8 @@ const TASTE_KEY = "immersion:taste:v1";
 const INTENT_KEY = "immersion:intent:v1";
 const PLACE_KEY = "immersion:places:v1";
 
+type LegacyUserPlaceState = UserPlaceState & { directionsRequested?: number };
+
 export interface UserStorage {
   getTasteProfile(): TasteProfile | null;
   setTasteProfile(profile: TasteProfile | null): void;
@@ -27,9 +29,19 @@ export const localUserStorage: UserStorage = {
   setTasteProfile: (profile) => profile ? localStorage.setItem(TASTE_KEY, JSON.stringify(profile)) : localStorage.removeItem(TASTE_KEY),
   getIntent: () => readJson<Intent>(INTENT_KEY, "anything"),
   setIntent: (intent) => localStorage.setItem(INTENT_KEY, JSON.stringify(intent)),
-  getPlaces: () => readJson<Record<string, UserPlaceState>>(PLACE_KEY, {}),
+  getPlaces: () => migratePlaceStates(readJson<Record<string, LegacyUserPlaceState>>(PLACE_KEY, {})),
   setPlaces: (places) => localStorage.setItem(PLACE_KEY, JSON.stringify(places)),
 };
+
+export function migratePlaceStates(places: Record<string, LegacyUserPlaceState>): Record<string, UserPlaceState> {
+  return Object.fromEntries(Object.entries(places).map(([id, place]) => {
+    const { directionsRequested, ...current } = place;
+    return [id, {
+      ...current,
+      ...(current.mapViews === undefined && directionsRequested !== undefined ? { mapViews: directionsRequested } : {}),
+    }];
+  }));
+}
 
 function migrateTasteProfile(profile: TasteProfile | null): TasteProfile | null {
   if (!profile || profile.dimensions) return profile;

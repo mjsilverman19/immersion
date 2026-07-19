@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { MAP_CONFIG, PALETTE } from "@/lib/config";
 import { buildBaseStyle } from "@/lib/mapStyle";
+import { findAreaAtPoint } from "@/lib/mapAreaSelection";
 import { mergeParallelStreetSegments, type StreetSegmentCandidate } from "@/lib/streetGeometry";
 import { cn } from "@/lib/utils";
 import type { HexGeometryCollection, MapMode, RankedVenue, SelectedArea, UserLocation, VenueRecord } from "@/types/data";
@@ -11,6 +12,7 @@ import type { HexGeometryCollection, MapMode, RankedVenue, SelectedArea, UserLoc
 interface MapCanvasProps {
   geometry: HexGeometryCollection | null;
   areas: SelectedArea[];
+  selectableAreas: SelectedArea[];
   selectedArea: SelectedArea | null;
   selectedVenues: RankedVenue[];
   mapMode: MapMode;
@@ -171,10 +173,12 @@ function splitStreetSegments(features: maplibregl.MapGeoJSONFeature[], cells: Ce
   return { type: "FeatureCollection", features: output };
 }
 
-export function MapCanvas({ geometry, areas, selectedArea, selectedVenues, mapMode, userLocation, onSelectArea, onSelectVenue, retrievalVenues = [], focusVenue = null, onSelectPlace, className }: MapCanvasProps) {
+export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, selectedVenues, mapMode, userLocation, onSelectArea, onSelectVenue, retrievalVenues = [], focusVenue = null, onSelectPlace, className }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const areasRef = useRef(areas);
+  const selectedAreaRef = useRef(selectedArea);
+  const autoActivationPendingRef = useRef<string | null>(null);
   const venuesRef = useRef(selectedVenues);
   const retrievalVenuesRef = useRef(retrievalVenues);
   const onSelectAreaRef = useRef(onSelectArea);
@@ -185,6 +189,7 @@ export function MapCanvas({ geometry, areas, selectedArea, selectedVenues, mapMo
   const [visibleVenueCount, setVisibleVenueCount] = useState(0);
   const [detailZoom, setDetailZoom] = useState(11.35);
   areasRef.current = areas;
+  selectedAreaRef.current = selectedArea;
   venuesRef.current = selectedVenues;
   retrievalVenuesRef.current = retrievalVenues;
   onSelectAreaRef.current = onSelectArea;
@@ -251,6 +256,30 @@ export function MapCanvas({ geometry, areas, selectedArea, selectedVenues, mapMo
     };
     return runAfterStyleInit(map, apply);
   }, [areas, mapMode, ready, selectedArea?.id]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const activateAreaAtCenter = () => {
+      if (map.getZoom() < 12.8 || autoActivationPendingRef.current) return;
+      const center = map.getCenter();
+      const area = findAreaAtPoint(geometry, selectableAreas, [center.lng, center.lat]);
+      if (!area || selectedAreaRef.current?.id === area.id) return;
+      autoActivationPendingRef.current = area.id;
+      onSelectAreaRef.current(area);
+    };
+    map.on("zoomend", activateAreaAtCenter);
+    map.on("moveend", activateAreaAtCenter);
+    activateAreaAtCenter();
+    return () => {
+      map.off("zoomend", activateAreaAtCenter);
+      map.off("moveend", activateAreaAtCenter);
+    };
+  }, [geometry, ready, selectableAreas]);
+
+  useEffect(() => {
+    autoActivationPendingRef.current = null;
+  }, [selectedArea?.id]);
 
   useEffect(() => {
     const map = mapRef.current;

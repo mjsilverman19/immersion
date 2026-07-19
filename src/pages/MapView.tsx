@@ -29,7 +29,6 @@ const MapView = () => {
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [citySelectedVenueId, setCitySelectedVenueId] = useState<string | null>(null);
-  const [citySelectedReasons, setCitySelectedReasons] = useState<string[]>([]);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "locating" | "ready" | "outside" | "denied" | "unsupported">("idle");
   const [selectNearMeWhenReady, setSelectNearMeWhenReady] = useState(false);
@@ -82,12 +81,6 @@ const MapView = () => {
       : [],
     [city.categoryCurves, city.metrics?.dayOfWeek, hour, neighborEntry, selectedPlace],
   );
-  const retrievalReasonsById = useMemo(() => {
-    const map = new Map<string, string[]>();
-    similarResults.forEach((result) => map.set(result.venue.id, result.reasons));
-    complementResults.forEach((result) => { if (!map.has(result.venue.id)) map.set(result.venue.id, result.reasons); });
-    return map;
-  }, [complementResults, similarResults]);
   const retrievalVenues = useMemo(
     () => [...new Map([...similarResults, ...complementResults].map((result) => [result.venue.id, result.venue])).values()],
     [complementResults, similarResults],
@@ -144,7 +137,7 @@ const MapView = () => {
    * this" / "continue from here" results land here, since they routinely fall
    * outside the active intent filter or a neighborhood not in the top areas.
    */
-  const selectPlace = (venueId: string, reasons: string[] = []) => {
+  const selectPlace = (venueId: string) => {
     const venue = venuesById.get(venueId);
     if (!venue) return;
     const area = venue.neighborhoodId ? allAreas.find((item) => item.id === venue.neighborhoodId) : undefined;
@@ -157,10 +150,9 @@ const MapView = () => {
       setSelectedAreaId(null);
       setSelectedVenueId(null);
       setCitySelectedVenueId(venueId);
-      setCitySelectedReasons(reasons);
     }
   };
-  const selectPlaceFromMap = (venue: VenueRecord) => selectPlace(venue.id, retrievalReasonsById.get(venue.id));
+  const selectPlaceFromMap = (venue: VenueRecord) => selectPlace(venue.id);
 
   const updateSelectedPlace = (patch: Parameters<typeof updatePlace>[1]) => {
     if (!selectedPlace || !selectedPlaceRadarEvidence) return;
@@ -169,11 +161,11 @@ const MapView = () => {
     if (patch.endorsed === true && !current?.endorsed) learnFromEvidence(selectedPlaceRadarEvidence, 2);
     updatePlace(selectedPlace.id, patch);
   };
-  const recordDirections = () => {
+  const recordMapView = () => {
     if (!selectedPlace || !selectedPlaceRadarEvidence) return;
     const current = places[selectedPlace.id];
-    learnFromEvidence(selectedPlaceRadarEvidence, 1.5);
-    updatePlace(selectedPlace.id, { directionsRequested: (current?.directionsRequested ?? 0) + 1 });
+    learnFromEvidence(selectedPlaceRadarEvidence, 1);
+    updatePlace(selectedPlace.id, { mapViews: (current?.mapViews ?? 0) + 1 });
   };
   const closeTasteFlow = () => {
     setTasteOpen(false);
@@ -183,7 +175,7 @@ const MapView = () => {
 
   return (
     <main className="relative h-[100dvh] w-full overflow-hidden bg-background">
-      <MapCanvas className="absolute inset-0" geometry={city.geometry} areas={areas} selectedArea={selectedArea} selectedVenues={selectedArea?.mapVenues ?? []} mapMode={mapMode} userLocation={userLocation} onSelectArea={(area) => { setSelectedVenueId(null); setCitySelectedVenueId(null); setSelectedAreaId(area.id); }} onSelectVenue={selectVenue} retrievalVenues={retrievalVenues} focusVenue={citySelectedVenue} onSelectPlace={selectPlaceFromMap} />
+      <MapCanvas className="absolute inset-0" geometry={city.geometry} areas={areas} selectableAreas={allAreas} selectedArea={selectedArea} selectedVenues={selectedArea?.mapVenues ?? []} mapMode={mapMode} userLocation={userLocation} onSelectArea={(area) => { setSelectedVenueId(null); setCitySelectedVenueId(null); setSelectedAreaId(area.id); }} onSelectVenue={selectVenue} retrievalVenues={retrievalVenues} focusVenue={citySelectedVenue} onSelectPlace={selectPlaceFromMap} />
       <MapLoadingState progress={city.progress} label={city.loadingLabel} error={city.error} />
 
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-3 md:p-5">
@@ -210,14 +202,14 @@ const MapView = () => {
       {locationStatus === "outside" && <div role="status" className="absolute right-3 top-28 z-20 max-w-[250px] rounded-xl border border-border bg-background/94 px-3 py-2 text-[11px] text-muted-foreground shadow-md">You’re outside the supported NYC coverage. Move the map back to New York to explore neighborhood recommendations.</div>}
 
       {!selectedRankedVenue && !citySelectedVenue && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 pb-3 md:pb-5">
-        {!selectedArea && areas.length > 0 && <div className="pointer-events-auto w-full"><AreaRail areas={areas} selectedId={selectedAreaId} personalized={mapMode === "personalized"} collapsed={areaRailCollapsed} onCollapsedChange={setAreaRailCollapsed} onSelect={(area) => setSelectedAreaId(area.id)} /></div>}
+        {!selectedArea && areas.length > 0 && <div className="pointer-events-auto w-full"><AreaRail areas={areas} collapsed={areaRailCollapsed} onCollapsedChange={setAreaRailCollapsed} onSelect={(area, venue) => { setSelectedAreaId(area.id); setSelectedVenueId(venue.id); setCitySelectedVenueId(null); }} /></div>}
         <div className="pointer-events-auto w-full max-w-md px-3"><TypicalTimeControl day={day} hour={hour} onDayChange={setDay} onHourChange={setHour} /></div>
         {city.manifest && <div className="pointer-events-auto rounded-full border border-border bg-background/88 px-3 py-1 text-[9px] text-muted-foreground shadow-sm backdrop-blur">Typical-week model · Dataset {city.manifest.datasetVersion} · <Link to="/methodology" className="underline underline-offset-2">methodology</Link></div>}
       </div>}
 
       <AreaSheet selected={selectedArea} day={day} hour={hour} onClose={() => setSelectedAreaId(null)} onSelectVenue={selectVenue} />
-      <VenueSheet ranked={selectedRankedVenue} tasteProfile={activeTasteProfile} state={selectedRankedVenue ? places[selectedRankedVenue.venue.id] : undefined} onUpdate={updateSelectedPlace} onDirections={recordDirections} onClose={() => setSelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
-      <PlaceSheet venue={citySelectedVenue} reasons={citySelectedReasons} tasteProfile={activeTasteProfile} state={citySelectedVenue ? places[citySelectedVenue.id] : undefined} onUpdate={updateSelectedPlace} onDirections={recordDirections} onClose={() => setCitySelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
+      <VenueSheet ranked={selectedRankedVenue} tasteProfile={activeTasteProfile} state={selectedRankedVenue ? places[selectedRankedVenue.venue.id] : undefined} onUpdate={updateSelectedPlace} onViewOnMaps={recordMapView} onShapeTaste={() => { setTasteOpen(true); setShowTasteNudge(false); }} onClose={() => setSelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
+      <PlaceSheet venue={citySelectedVenue} tasteProfile={activeTasteProfile} state={citySelectedVenue ? places[citySelectedVenue.id] : undefined} onUpdate={updateSelectedPlace} onViewOnMaps={recordMapView} onShapeTaste={() => { setTasteOpen(true); setShowTasteNudge(false); }} onClose={() => setCitySelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
       <TasteFlow open={tasteOpen} surfacedVenues={(allAreas[0]?.recommendedVenues ?? []).slice(0, 2).map((item) => item.venue.name)} onClose={closeTasteFlow} onPreview={(profile) => { setPreviewTasteProfile(profile); setMapMode("personalized"); }} onComplete={(profile) => { setTasteProfile(profile); setPreviewTasteProfile(null); setMapMode("personalized"); setTasteOpen(false); setShowTasteReveal(true); }} />
       {tasteProfile && showTasteReveal && <TasteSummary profile={tasteProfile} topArea={areas[0]} onClose={() => setShowTasteReveal(false)} onAdjust={() => { setShowTasteReveal(false); setTasteOpen(true); }} />}
     </main>
