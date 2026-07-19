@@ -8,6 +8,8 @@
  * surface in `mapStyle.ts`.
  */
 
+import type { Intent } from "@/types/data";
+
 /** Keyless OpenMapTiles vector tiles (TileJSON). */
 export const TILE_URL =
   import.meta.env.VITE_TILE_URL || "https://tiles.openfreemap.org/planet";
@@ -49,6 +51,40 @@ export const SCORING = {
   /** Bounded ±15% taste nudge applied on top of a venue's contextual score. */
   VENUE_PERSONALIZATION_CAP: 0.15,
 } as const;
+
+export interface IntentScoring {
+  /** Local-reward strength (engine default 1.0 -> up to +100%). */
+  lambda: number;
+  /** Tourist-penalty strength (engine default 0.6 -> down to −60%). */
+  gamma: number;
+  /** When set, activity is scored as fit toward this level (0..1) rather than
+   *  "busier is better" — e.g. a quiet-coffee run prefers a moderate buzz. */
+  activityTarget?: number;
+  /** Curvature of the peaked activity fit; higher = sharper preference. */
+  activityStrength?: number;
+}
+
+/** Engine-faithful scoring: local/visitor as universal levers, activity
+ *  monotonic. Used for `anything` and as the default in the pure scorer, so
+ *  golden parity with the offline engine is preserved. */
+export const ENGINE_SCORING: IntentScoring = { lambda: SCORING.LAMBDA, gamma: SCORING.GAMMA };
+
+/**
+ * Intent-relative scoring. Local orientation, visitor pressure, and activity are
+ * *fit*, not universal good/bad: a quiet-coffee run prefers a calm block and
+ * barely penalizes visitors, while culture tolerates iconic/touristy areas.
+ * These diverge from the engine's global constants by design and apply only to
+ * specific intents; `anything` stays engine-faithful.
+ */
+export const INTENT_SCORING: Record<Intent, IntentScoring> = {
+  anything: ENGINE_SCORING,
+  eat: { lambda: 1.0, gamma: 0.6 },
+  drink: { lambda: 1.0, gamma: 0.6 },
+  coffee: { lambda: 1.0, gamma: 0.3, activityTarget: 0.5, activityStrength: 3 },
+  culture: { lambda: 0.7, gamma: 0.2 },
+  outside: { lambda: 0.9, gamma: 0.4 },
+  nightlife: { lambda: 1.0, gamma: 0.6 },
+};
 
 export const MAP_CONFIG = {
   /** Default view: the Brooklyn / Queens activity band (midtown suppressed). */

@@ -1,5 +1,5 @@
 import { metricAt } from "@/lib/baselineScore";
-import { SCORING } from "@/lib/config";
+import { ENGINE_SCORING, INTENT_SCORING, SCORING, type IntentScoring } from "@/lib/config";
 import { PERSONALIZATION_CAP, personalizeBaseline, tasteContributions, type TasteSignals } from "@/lib/personalization";
 import type {
   CategoryCurves,
@@ -122,21 +122,38 @@ function timeFit(venue: VenueRecord, curves: CategoryCurves | null, dayOfWeek: n
  * `metric` is null when the venue's hex has no metrics (outside the pilot
  * footprint) — every term is then exactly neutral.
  */
-export function venueContextTerms(timeCurve: number, metric: HexTimeMetric | null) {
+export function venueContextTerms(
+  timeCurve: number,
+  metric: HexTimeMetric | null,
+  intent: IntentScoring = ENGINE_SCORING,
+) {
   const time = SCORING.TIME_FLOOR + (1 - SCORING.TIME_FLOOR) * timeCurve;
-  const activity = 1 - (metric?.activityConfidence ?? 0) * 0.5 * (1 - (metric?.activity ?? 0));
-  const local = 1 + (metric?.localOrientationConfidence ?? 0) * SCORING.LAMBDA * (metric?.localOrientation ?? 0);
-  const tourist = 1 - (metric?.visitorPressureConfidence ?? 0) * SCORING.GAMMA * (metric?.visitorPressure ?? 0);
+  const a = metric?.activity ?? 0;
+  const confA = metric?.activityConfidence ?? 0;
+  // Activity is "busier is better" by default, but intent-relative when a target
+  // is set: fit toward that buzz level, relaxing to neutral (1.0) as confidence
+  // falls so a thin-evidence hex is never penalized either way.
+  const activity = intent.activityTarget === undefined
+    ? 1 - confA * 0.5 * (1 - a)
+    : confA * Math.exp(-(intent.activityStrength ?? 3) * (a - intent.activityTarget) ** 2) + (1 - confA);
+  const local = 1 + (metric?.localOrientationConfidence ?? 0) * intent.lambda * (metric?.localOrientation ?? 0);
+  const tourist = 1 - (metric?.visitorPressureConfidence ?? 0) * intent.gamma * (metric?.visitorPressure ?? 0);
   return { time, activity, local, tourist };
 }
 
 /**
  * S(v,t): venue quality anchored, then contextualized by the hex's activity,
  * local likelihood, and tourist saturation at the selected hour. `qualityPrior`
- * is Q/100 (0..1); the score lands on a stable 0..100 display scale.
+ * is Q/100 (0..1); the score lands on a stable 0..100 display scale. `intent`
+ * defaults to the engine-faithful constants (golden-parity path).
  */
-export function venueBaseScore(qualityPrior: number, timeCurve: number, metric: HexTimeMetric | null): number {
-  const { time, activity, local, tourist } = venueContextTerms(timeCurve, metric);
+export function venueBaseScore(
+  qualityPrior: number,
+  timeCurve: number,
+  metric: HexTimeMetric | null,
+  intent: IntentScoring = ENGINE_SCORING,
+): number {
+  const { time, activity, local, tourist } = venueContextTerms(timeCurve, metric, intent);
   return SCORING.SCALE * qualityPrior * time * activity * local * tourist;
 }
 
@@ -197,19 +214,36 @@ export function standaloneRadarEvidence(venue: VenueRecord): RadarEvidence {
   };
 }
 
+/** A liveliness reason phrased for the intent: "busier is better" intents cite
+ *  an unusually lively block; a target intent (e.g. quiet coffee) cites a buzz
+ *  level close to what it wants. */
+function activityContribution(metric: HexTimeMetric | null, intent: IntentScoring): ScoreContribution[] {
+  if (!metric) return [];
+  if (intent.activityTarget === undefined) {
+    return metric.activity >= 0.5
+      ? [{ feature: "activity", contribution: metric.activity * metric.activityConfidence, label: "Unusually lively at this time", evidenceConfidence: metric.activityConfidence }]
+      : [];
+  }
+  const closeness = 1 - Math.min(1, Math.abs(metric.activity - intent.activityTarget) / 0.3);
+  return closeness > 0.4
+    ? [{ feature: "activity", contribution: closeness * metric.activityConfidence, label: "An easy-going buzz right now", evidenceConfidence: metric.activityConfidence }]
+    : [];
+}
+
 function rankVenues(
   draft: AreaDraft,
   input: RecommendationInput,
 ): RankedVenue[] {
   const eligible = draft.venues.filter((venue) => venueMatchesIntent(venue, input.intent) && venue.qualityPrior >= 0.2);
   const tasteActive = input.mapMode === "personalized" ? input.tasteProfile : null;
+  const intentScoring = INTENT_SCORING[input.intent];
   const ranked = eligible.map((venue) => {
     const temporal = timeFit(venue, input.categoryCurves, input.metrics.dayOfWeek, input.hour);
     // Context comes from the venue's OWN hex at the selected hour; unsupported
     // cells (absent from the slice) leave every term neutral -> pure quality.
     const hexRecord = input.metrics.records[venue.h3];
     const metric = hexRecord ? metricAt(hexRecord, input.hour) : null;
-    const terms = venueContextTerms(temporal, metric);
+    const terms = venueContextTerms(temporal, metric, intentScoring);
     const base = SCORING.SCALE * venue.qualityPrior * terms.time * terms.activity * terms.local * terms.tourist;
     const signals = venueTasteSignals(venue);
     // Taste is a bounded ±15% lever on top of the contextual score, never a
@@ -217,7 +251,7 @@ function rankVenues(
     const score = personalizeBaseline(base, tasteActive, signals, venue.featureScores.evidenceConfidence, SCORING.VENUE_PERSONALIZATION_CAP);
     const contributions: ScoreContribution[] = [
       ...(venue.qualityPrior >= 0.6 ? [{ feature: "quality", contribution: venue.qualityPrior, label: "Highly rated for its kind", evidenceConfidence: venue.qualityConfidence }] : []),
-      ...(metric && metric.activity >= 0.5 ? [{ feature: "activity", contribution: metric.activity * metric.activityConfidence, label: "Unusually lively at this time", evidenceConfidence: metric.activityConfidence }] : []),
+      ...activityContribution(metric, intentScoring),
       ...(terms.local > 1.02 ? [{ feature: "local", contribution: terms.local - 1, label: "In tune with the neighborhood right now", evidenceConfidence: metric?.localOrientationConfidence ?? 0 }] : []),
       ...(temporal >= 0.55 ? [{ feature: "time", contribution: 0.5 * temporal, label: "A good time for this kind of place", evidenceConfidence: metric?.confidence ?? 0 }] : []),
       ...tasteContributions(tasteActive, signals, venue.featureScores.evidenceConfidence),
