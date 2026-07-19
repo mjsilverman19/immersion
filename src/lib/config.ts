@@ -31,6 +31,25 @@ export const DATA = {
   venues: `${import.meta.env.BASE_URL}data/venues.json`,
 } as const;
 
+/**
+ * Recommender score constants, mirrored from the offline engine
+ * (immersion_data/pipeline/assemble_scores.py) so client venue rankings
+ * reproduce S(v,t) = SCALE · Q · time · activity · local · tourist by
+ * construction. Keep these in lockstep with the pipeline.
+ */
+export const SCORING = {
+  /** Local reward ceiling: up to +100% at full local likelihood. */
+  LAMBDA: 1.0,
+  /** Tourist penalty: down to −60% at full tourist saturation. */
+  GAMMA: 0.6,
+  /** Off-peak floor for the category time curve (never zeroes a venue). */
+  TIME_FLOOR: 0.25,
+  /** Display scale: SCALE · max product (2.0) = 100 ceiling. */
+  SCALE: 50,
+  /** Bounded ±15% taste nudge applied on top of a venue's contextual score. */
+  VENUE_PERSONALIZATION_CAP: 0.15,
+} as const;
+
 export const MAP_CONFIG = {
   /** Default view: the Brooklyn / Queens activity band (midtown suppressed). */
   center: { lat: 40.726, lng: -73.958 },

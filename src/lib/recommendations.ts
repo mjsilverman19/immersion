@@ -1,8 +1,10 @@
 import { metricAt } from "@/lib/baselineScore";
-import { PERSONALIZATION_CAP, personalizeBaseline, tasteContributions, tasteDot, type TasteSignals } from "@/lib/personalization";
+import { SCORING } from "@/lib/config";
+import { PERSONALIZATION_CAP, personalizeBaseline, tasteContributions, type TasteSignals } from "@/lib/personalization";
 import type {
   CategoryCurves,
   HexGeometryCollection,
+  HexTimeMetric,
   Intent,
   MapMode,
   MetricSlice,
@@ -107,13 +109,35 @@ function haversineMiles(a: UserLocation, center: [number, number]): number {
   return 2 * radius * Math.asin(Math.sqrt(value));
 }
 
-function venueDistanceMiles(a: VenueRecord, b: VenueRecord): number {
-  return haversineMiles({ latitude: a.latitude, longitude: a.longitude }, [b.longitude, b.latitude]);
-}
-
 function timeFit(venue: VenueRecord, curves: CategoryCurves | null, dayOfWeek: number, hour: number): number {
   const curve = curves?.[venue.category];
   return curve?.[dayOfWeek * 24 + hour] ?? 0.5;
+}
+
+/**
+ * The multiplicative context terms of the recommender score, mirrored from the
+ * offline engine (immersion_data/pipeline/assemble_scores.py). Each term relaxes
+ * toward neutral (1.0) as its per-hex confidence falls, so a venue in a
+ * thin-evidence cell scores close to pure quality rather than being penalised.
+ * `metric` is null when the venue's hex has no metrics (outside the pilot
+ * footprint) — every term is then exactly neutral.
+ */
+export function venueContextTerms(timeCurve: number, metric: HexTimeMetric | null) {
+  const time = SCORING.TIME_FLOOR + (1 - SCORING.TIME_FLOOR) * timeCurve;
+  const activity = 1 - (metric?.activityConfidence ?? 0) * 0.5 * (1 - (metric?.activity ?? 0));
+  const local = 1 + (metric?.localOrientationConfidence ?? 0) * SCORING.LAMBDA * (metric?.localOrientation ?? 0);
+  const tourist = 1 - (metric?.visitorPressureConfidence ?? 0) * SCORING.GAMMA * (metric?.visitorPressure ?? 0);
+  return { time, activity, local, tourist };
+}
+
+/**
+ * S(v,t): venue quality anchored, then contextualized by the hex's activity,
+ * local likelihood, and tourist saturation at the selected hour. `qualityPrior`
+ * is Q/100 (0..1); the score lands on a stable 0..100 display scale.
+ */
+export function venueBaseScore(qualityPrior: number, timeCurve: number, metric: HexTimeMetric | null): number {
+  const { time, activity, local, tourist } = venueContextTerms(timeCurve, metric);
+  return SCORING.SCALE * qualityPrior * time * activity * local * tourist;
 }
 
 function venueTasteSignals(venue: VenueRecord): TasteSignals {
@@ -175,26 +199,36 @@ export function standaloneRadarEvidence(venue: VenueRecord): RadarEvidence {
 
 function rankVenues(
   draft: AreaDraft,
-  areaScore: number,
   input: RecommendationInput,
 ): RankedVenue[] {
   const eligible = draft.venues.filter((venue) => venueMatchesIntent(venue, input.intent) && venue.qualityPrior >= 0.2);
+  const tasteActive = input.mapMode === "personalized" ? input.tasteProfile : null;
   const ranked = eligible.map((venue) => {
     const temporal = timeFit(venue, input.categoryCurves, input.metrics.dayOfWeek, input.hour);
+    // Context comes from the venue's OWN hex at the selected hour; unsupported
+    // cells (absent from the slice) leave every term neutral -> pure quality.
+    const hexRecord = input.metrics.records[venue.h3];
+    const metric = hexRecord ? metricAt(hexRecord, input.hour) : null;
+    const terms = venueContextTerms(temporal, metric);
+    const base = SCORING.SCALE * venue.qualityPrior * terms.time * terms.activity * terms.local * terms.tourist;
     const signals = venueTasteSignals(venue);
-    const tasteActive = input.mapMode === "personalized" ? input.tasteProfile : null;
-    const tasteFit = tasteActive ? 0.5 + 0.5 * Math.tanh(2.4 * tasteDot(tasteActive, signals) * venue.featureScores.evidenceConfidence * tasteActive.confidence) : 0.5;
-    const intentFit = input.intent === "anything" ? 0.7 : 1;
-    const neighborDistances = eligible.filter((other) => other.id !== venue.id).map((other) => venueDistanceMiles(venue, other)).sort((a, b) => a - b).slice(0, 3);
-    const clusterFit = Math.exp(-avg(neighborDistances) / 0.3);
-    const score = 0.3 * intentFit + 0.2 * temporal + 0.25 * tasteFit + 0.1 * clusterFit + 0.05 * areaScore + 0.1 * venue.qualityPrior;
+    // Taste is a bounded ±15% lever on top of the contextual score, never a
+    // competing additive term.
+    const score = personalizeBaseline(base, tasteActive, signals, venue.featureScores.evidenceConfidence, SCORING.VENUE_PERSONALIZATION_CAP);
     const contributions: ScoreContribution[] = [
-      ...(input.intent !== "anything" ? [{ feature: "intent", contribution: 0.3, label: `${categoryBenefit(input.intent)} here`, evidenceConfidence: 1 }] : []),
-      ...(temporal >= 0.55 ? [{ feature: "time", contribution: 0.2 * temporal, label: "This kind of place tends to work well at this time", evidenceConfidence: draft.confidence }] : []),
+      ...(venue.qualityPrior >= 0.6 ? [{ feature: "quality", contribution: venue.qualityPrior, label: "Highly rated for its kind", evidenceConfidence: venue.qualityConfidence }] : []),
+      ...(metric && metric.activity >= 0.5 ? [{ feature: "activity", contribution: metric.activity * metric.activityConfidence, label: "Unusually lively at this time", evidenceConfidence: metric.activityConfidence }] : []),
+      ...(terms.local > 1.02 ? [{ feature: "local", contribution: terms.local - 1, label: "In tune with the neighborhood right now", evidenceConfidence: metric?.localOrientationConfidence ?? 0 }] : []),
+      ...(temporal >= 0.55 ? [{ feature: "time", contribution: 0.5 * temporal, label: "A good time for this kind of place", evidenceConfidence: metric?.confidence ?? 0 }] : []),
       ...tasteContributions(tasteActive, signals, venue.featureScores.evidenceConfidence),
-      { feature: "cluster", contribution: 0.1 * clusterFit, label: "Part of a promising nearby cluster", evidenceConfidence: draft.confidence },
     ];
-    return { venue, score, timeFit: temporal, radarEvidence: venueRadarEvidence(venue, draft), contributions: contributions.filter((item) => item.contribution > 0).sort((a, b) => b.contribution - a.contribution).slice(0, 3) };
+    return {
+      venue,
+      score,
+      timeFit: temporal,
+      radarEvidence: venueRadarEvidence(venue, draft),
+      contributions: contributions.filter((item) => item.contribution > 0).sort((a, b) => b.contribution - a.contribution).slice(0, 3),
+    };
   }).sort((a, b) => b.score - a.score);
   const recommendationLabel = input.mapMode === "personalized" && input.tasteProfile ? "People like you" as const : "Strong fit" as const;
   return ranked.map((item, index) => ({ ...item, rank: index + 1, isRecommended: index < 5, recommendationLabel }));
@@ -311,7 +345,7 @@ export function buildAreaRecommendations(input: RecommendationInput): SelectedAr
     const glowStrength = clamp01(
       (tasteHasEnoughEvidence ? tasteStrength : activityStrength) * (0.35 + 0.65 * draft.confidence),
     );
-    const mapVenues = rankVenues(draft, score, effectiveInput);
+    const mapVenues = rankVenues(draft, effectiveInput);
     return ({
     id: draft.id, name: draft.name, borough: draft.borough, center: draft.center, h3Ids: draft.h3Ids,
     activeCells: draft.activeCells,

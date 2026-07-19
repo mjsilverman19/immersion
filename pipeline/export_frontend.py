@@ -18,6 +18,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DAYS = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")
+# Engine week arrays (hex_metrics_summary.json A/L/T, category_curves.json) are
+# indexed dow*24+hour with dow 0=Mon..6=Sun (see compute_metrics.py and
+# build_category_curves.py). Map each frontend day key to its engine day-of-week
+# so the sliced hourly metrics and the category curve the client indexes by
+# `dayOfWeek` refer to the SAME real day. (Previously the exporter sliced by the
+# DAYS tuple's position, which put engine Monday under "sun" and rotated every
+# day by one.)
+ENGINE_DOW = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 SCHEMA_VERSION = 3
 COMPLEMENT_ROLES = ("alongside", "after", "before")
 ALLOWED_OUTER = {
@@ -172,8 +180,9 @@ def export_metrics(source: Path, output: Path, retained_ids: set[str]) -> dict[s
     if missing:
         raise SystemExit(f"{len(missing)} retained hexes have no metrics")
     metric_files: dict[str, str] = {}
-    for day_index, day in enumerate(DAYS):
-        start, stop = day_index * 24, day_index * 24 + 24
+    for day in DAYS:
+        dow = ENGINE_DOW[day]
+        start, stop = dow * 24, dow * 24 + 24
         records = {}
         for h3 in retained_ids:
             record = raw[h3]
@@ -184,7 +193,7 @@ def export_metrics(source: Path, output: Path, retained_ids: set[str]) -> dict[s
                 [compact_confidence(record.get("conf_A", 0)), compact_confidence(record.get("conf_L", 0)), compact_confidence(record.get("conf_T", 0))],
             ]
         filename = f"hex_metrics-{day}.json"
-        write_json(output / filename, {"dayOfWeek": day_index, "intervalMinutes": 60, "records": records})
+        write_json(output / filename, {"dayOfWeek": dow, "intervalMinutes": 60, "records": records})
         metric_files[day] = filename
     return metric_files
 

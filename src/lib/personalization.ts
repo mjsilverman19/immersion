@@ -26,13 +26,16 @@ export function personalizeBaseline(
   profile: TasteProfile | null,
   signals: TasteSignals,
   confidence: number,
+  cap: number = PERSONALIZATION_CAP,
 ): number {
   if (!profile) return baseline;
   // The profile is intentionally bounded, but the response needs to be strong
   // enough to produce a visible reorder. Confidence from skipped questions
-  // scales the effect down without changing the 30% ceiling.
+  // scales the effect down without changing the ceiling. `cap` sets that
+  // ceiling: areas keep the ±30% default; venues pass a tighter ±15% so taste
+  // nudges the contextual ranking without overturning quality-in-context.
   const match = Math.tanh(2.4 * tasteDot(profile, signals)) * profile.confidence;
-  const raw = baseline * (1 + PERSONALIZATION_CAP * match);
+  const raw = baseline * (1 + cap * match);
   return baseline + Math.max(0, Math.min(1, confidence)) * (raw - baseline);
 }
 
