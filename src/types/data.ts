@@ -19,6 +19,7 @@ export interface DatasetManifest {
     venues: string;
     categoryCurves: string;
     neighborhoods: string;
+    placeNeighbors?: string;
   };
 }
 
@@ -214,3 +215,59 @@ export interface MapExperienceState {
 
 export type CategoryCurves = Record<VenueRecord["category"], number[]>;
 export interface UserLocation { latitude: number; longitude: number }
+
+// --- Venue-to-venue retrieval (place fingerprints) -------------------------
+export type SimilarChannel = "time" | "ecology" | "area" | "category" | "spend" | "role";
+export type ComplementFactor = "walk" | "complement" | "area";
+export type ComplementRole = "alongside" | "after" | "before";
+
+/** On-disk compact row: [candidateVenueIndex, ...channel scores 0-100]. */
+export type CompactSimilar = number[];
+/** On-disk compact row: [candidateVenueIndex, distanceMeters, roleIndex, ...factor scores 0-100]. */
+export type CompactComplement = number[];
+
+/** The shipped place_neighbors.json contract (schema v3). Arrays are aligned to venues.json order. */
+export interface PlaceNeighborsArtifact {
+  similarScoreOrder: SimilarChannel[];
+  complementScoreOrder: ComplementFactor[];
+  roles: ComplementRole[];
+  similar: CompactSimilar[][];
+  complements: CompactComplement[][];
+}
+
+/** A candidate resolved against the venue list, scores rescaled to 0-1. */
+export interface SimilarNeighbor {
+  venue: VenueRecord;
+  scores: Record<SimilarChannel, number>;
+}
+
+export interface ComplementNeighbor {
+  venue: VenueRecord;
+  distanceMeters: number;
+  role: ComplementRole;
+  scores: Record<ComplementFactor, number>;
+}
+
+export interface PlaceNeighborEntry {
+  similar: SimilarNeighbor[];
+  complements: ComplementNeighbor[];
+}
+
+/** Resolved retrieval index, keyed by seed venue id. */
+export type PlaceNeighborIndex = Map<string, PlaceNeighborEntry>;
+
+/** A ranked retrieval result carrying reconstructed reasons. */
+export interface SimilarResult {
+  venue: VenueRecord;
+  score: number;
+  scores: Record<SimilarChannel, number>;
+  reasons: string[];
+}
+
+export interface ComplementResult {
+  venue: VenueRecord;
+  distanceMeters: number;
+  role: ComplementRole;
+  score: number;
+  reasons: string[];
+}

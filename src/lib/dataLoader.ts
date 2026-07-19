@@ -3,8 +3,12 @@ import type {
   CategoryCurves,
   DatasetManifest,
   HexDayRecord,
+  ComplementFactor,
   HexGeometryCollection,
   MetricSlice,
+  PlaceNeighborIndex,
+  PlaceNeighborsArtifact,
+  SimilarChannel,
   VenueRecord,
   WeekdayKey,
 } from "@/types/data";
@@ -22,7 +26,7 @@ export const cityDataUrl = (filename: string) => `${DATA_ROOT}${filename}`;
 
 export async function loadManifest(): Promise<DatasetManifest> {
   const manifest = await fetchJson<DatasetManifest>(cityDataUrl("manifest.json"));
-  if (manifest.schemaVersion !== 2 || manifest.city !== "nyc") {
+  if (manifest.schemaVersion !== 3 || manifest.city !== "nyc") {
     throw new Error(`Unsupported NYC dataset schema ${manifest.schemaVersion}`);
   }
   return manifest;
@@ -69,4 +73,41 @@ export function loadVenues(manifest: DatasetManifest): Promise<VenueRecord[]> {
 
 export function loadCategoryCurves(manifest: DatasetManifest): Promise<CategoryCurves> {
   return fetchJson<CategoryCurves>(cityDataUrl(manifest.files.categoryCurves));
+}
+
+/**
+ * Load the venue-to-venue retrieval artifact and resolve its integer candidate
+ * indices against the loaded venue list, keyed by seed venue id. Scores are
+ * rescaled from the on-disk 0-100 ints to 0-1. Returns an empty index when the
+ * dataset predates schema v3 (no placeNeighbors file).
+ */
+export async function loadPlaceNeighbors(
+  manifest: DatasetManifest,
+  venues: VenueRecord[],
+): Promise<PlaceNeighborIndex> {
+  const index: PlaceNeighborIndex = new Map();
+  if (!manifest.files.placeNeighbors) return index;
+  const artifact = await fetchJson<PlaceNeighborsArtifact>(cityDataUrl(manifest.files.placeNeighbors));
+  const { similarScoreOrder, complementScoreOrder, roles, similar, complements } = artifact;
+  venues.forEach((seed, seedIndex) => {
+    const similarNeighbors = (similar[seedIndex] ?? []).flatMap((row) => {
+      const venue = venues[row[0]];
+      if (!venue) return [];
+      const scores = Object.fromEntries(similarScoreOrder.map((key, i) => [key, row[i + 1] / 100]));
+      return [{ venue, scores: scores as Record<SimilarChannel, number> }];
+    });
+    const complementNeighbors = (complements[seedIndex] ?? []).flatMap((row) => {
+      const venue = venues[row[0]];
+      if (!venue) return [];
+      const scores = Object.fromEntries(complementScoreOrder.map((key, i) => [key, row[i + 3] / 100]));
+      return [{
+        venue,
+        distanceMeters: row[1],
+        role: roles[row[2]] ?? "alongside",
+        scores: scores as Record<ComplementFactor, number>,
+      }];
+    });
+    index.set(seed.id, { similar: similarNeighbors, complements: complementNeighbors });
+  });
+  return index;
 }
