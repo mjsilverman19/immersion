@@ -230,6 +230,50 @@ function activityContribution(metric: HexTimeMetric | null, intent: IntentScorin
     : [];
 }
 
+const RECOMMENDED_SET_SIZE = 5;
+// How hard to trade relevance for variety, and the distance (miles) at which two
+// venues stop reading as "the same spot" (~2 short blocks).
+const SET_DIVERSITY = 0.35;
+const SET_DISTANCE_SCALE_MI = 0.12;
+
+/**
+ * Choose the shown set from the score-ranked list. Relevance still leads, but a
+ * greedy MMR pass penalizes candidates that duplicate an already-picked venue's
+ * block or category, so the surfaced 3–5 spread across the neighborhood instead
+ * of stacking on one corner. Ranking (mapVenues) is untouched — this only
+ * decides which venues carry the `isRecommended` flag.
+ */
+export function selectRecommendedSet(ranked: Array<{ venue: VenueRecord; score: number }>): Set<number> {
+  if (ranked.length <= RECOMMENDED_SET_SIZE) return new Set(ranked.map((_, index) => index));
+  const topScore = ranked[0].score || 1;
+  const chosen: number[] = [];
+  const remaining = new Set(ranked.map((_, index) => index));
+  while (chosen.length < RECOMMENDED_SET_SIZE && remaining.size) {
+    let best = -1;
+    let bestValue = -Infinity;
+    for (const i of remaining) {
+      let maxSim = 0;
+      for (const j of chosen) {
+        const miles = haversineMiles(
+          { latitude: ranked[i].venue.latitude, longitude: ranked[i].venue.longitude },
+          [ranked[j].venue.longitude, ranked[j].venue.latitude],
+        );
+        const spatial = Math.exp(-miles / SET_DISTANCE_SCALE_MI);
+        const sameCategory = ranked[i].venue.category === ranked[j].venue.category ? 1 : 0;
+        maxSim = Math.max(maxSim, 0.6 * spatial + 0.4 * sameCategory);
+      }
+      const value = ranked[i].score / topScore - SET_DIVERSITY * maxSim;
+      if (value > bestValue) {
+        bestValue = value;
+        best = i;
+      }
+    }
+    chosen.push(best);
+    remaining.delete(best);
+  }
+  return new Set(chosen);
+}
+
 function rankVenues(
   draft: AreaDraft,
   input: RecommendationInput,
@@ -265,7 +309,9 @@ function rankVenues(
     };
   }).sort((a, b) => b.score - a.score);
   const recommendationLabel = input.mapMode === "personalized" && input.tasteProfile ? "People like you" as const : "Strong fit" as const;
-  return ranked.map((item, index) => ({ ...item, rank: index + 1, isRecommended: index < 5, recommendationLabel }));
+  // Ranking is by score; the surfaced set is chosen for spread across the area.
+  const recommended = selectRecommendedSet(ranked);
+  return ranked.map((item, index) => ({ ...item, rank: index + 1, isRecommended: recommended.has(index), recommendationLabel }));
 }
 
 function categoryBenefit(intent: Intent): string {
