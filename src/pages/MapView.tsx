@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, LocateFixed, SlidersHorizontal, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
-
 import { MapCanvas } from "@/components/MapCanvas";
 import { AreaRail } from "@/components/map/AreaRail";
 import { MapLoadingState } from "@/components/map/MapLoadingState";
@@ -257,7 +255,6 @@ const MapView = () => {
       {!selectedRankedVenue && !citySelectedVenue && <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 safe-bottom md:pb-5">
         {!selectedArea && areas.length > 0 && <div className="pointer-events-auto w-full"><AreaRail areas={areas} collapsed={areaRailCollapsed} onCollapsedChange={setAreaRailCollapsed} onSelect={(area, venue) => { setSelectedAreaId(area.id); setSelectedVenueId(venue.id); setCitySelectedVenueId(null); }} /></div>}
         <div className="pointer-events-auto w-full max-w-md px-3"><TypicalTimeControl day={day} hour={hour} onDayChange={setDay} onHourChange={setHour} /></div>
-        {city.manifest && <div className="pointer-events-auto rounded-full border border-white/50 bg-background/60 px-3 py-1 text-[9px] text-muted-foreground shadow-sm backdrop-blur-xl">Typical-week model · Dataset {city.manifest.datasetVersion} · <Link to="/methodology" className="underline underline-offset-2">methodology</Link></div>}
       </div>}
 
       <AreaSheet selected={selectedArea} day={day} hour={hour} onClose={() => setSelectedAreaId(null)} onSelectVenue={selectVenue} />
