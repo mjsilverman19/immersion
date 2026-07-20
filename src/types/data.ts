@@ -20,6 +20,8 @@ export interface DatasetManifest {
     categoryCurves: string;
     neighborhoods: string;
     placeNeighbors?: string;
+    /** Present from schema v5; absent on v4 datasets (legacy 5-dim taste path). */
+    tasteSpace?: string;
   };
 }
 
@@ -119,6 +121,81 @@ export interface TasteProfile {
   dimensions?: Record<TasteDimensionKey, TasteDimension>;
   quizCompletedAt?: string;
   updatedAt?: string;
+  // --- v3 (vector taste) fields; absent on v2 profiles and when no taste
+  // space artifact is available. The 5 named dimensions above remain the
+  // derived interpretable view and are always kept in sync.
+  /** taste_space.json version the vectors were computed against. */
+  spaceVersion?: number;
+  /** Question bank version behind `answers`. */
+  bankVersion?: number;
+  /** questionId -> answer; source of truth, enables recompute on bank change. */
+  answers?: Record<string, TasteAnswer>;
+  /** Explicit taste direction: unnormalized sum of answer * question axis. */
+  vector?: number[];
+  /** Behavioural taste direction accumulated from saves/logs/endorsements. */
+  learnedVector?: number[];
+  /** Evidence units behind learnedVector (same scale as TasteDimension.learnedConfidence). */
+  learnedVectorConfidence?: number;
+}
+
+export type TasteAnswer = -1 | 0 | 1;
+
+export type TasteChannelKey = "temporal" | "ecology" | "area" | "role" | "spend";
+
+export interface TasteSpaceChannel {
+  key: TasteChannelKey;
+  start: number;
+  len: number;
+}
+
+export interface TasteQuestion {
+  id: string;
+  dimension: TasteDimensionKey | null;
+  anchor: boolean;
+  sign: 1 | -1;
+  prompt: string;
+  negative: string;
+  positive: string;
+  copy: { negative: string; positive: string; both: string };
+  axis: number[];
+  /** Corpus std of venue projections onto the axis. */
+  sigma: number;
+  sigmaByCategory: Record<VenueRecord["category"], number>;
+}
+
+/** The raw taste_space.json contract (see pipeline/build_taste_space.py). */
+export interface TasteSpaceArtifact {
+  version: number;
+  bankVersion: number;
+  dims: number;
+  channels: TasteSpaceChannel[];
+  quantClip: number;
+  matchGain: number;
+  viewGain: number;
+  /** base64 int8 rows, venues.json order, N x dims. */
+  vectors: string;
+  covariance: number[][];
+  interpretiveAxes: Record<TasteDimensionKey, number[]>;
+  areaCentroids: Record<string, number[]>;
+  questions: TasteQuestion[];
+}
+
+/** Decoded, typed-array form of the artifact used at runtime. */
+export interface TasteSpace {
+  version: number;
+  bankVersion: number;
+  dims: number;
+  channels: TasteSpaceChannel[];
+  matchGain: number;
+  viewGain: number;
+  venueCount: number;
+  /** Dequantized venue vectors, flat N x dims (venues.json order). */
+  vectors: Float32Array;
+  /** Flat dims x dims corpus covariance. */
+  covariance: Float32Array;
+  interpretiveAxes: Record<TasteDimensionKey, Float32Array>;
+  areaCentroids: Map<string, Float32Array>;
+  questions: TasteQuestion[];
 }
 
 export type TasteDimensionKey = "energy" | "novelty" | "wandering" | "formality" | "neighborhoodOrientation";

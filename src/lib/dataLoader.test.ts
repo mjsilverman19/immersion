@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadManifest, loadPlaceNeighbors, loadVenues } from "@/lib/dataLoader";
+import { loadManifest, loadPlaceNeighbors, loadTasteSpace, loadVenues } from "@/lib/dataLoader";
 
 // Exercise the real loader path against the actual exported artifacts under
 // public/data/nyc, so a schema bump or a broken index reference is caught here.
@@ -22,10 +22,27 @@ afterEach(() => {
 });
 
 describe("dataLoader against shipped artifacts", () => {
-  it("accepts the current schema-v4 manifest", async () => {
+  it("accepts the current schema-v5 manifest", async () => {
     const manifest = await loadManifest();
-    expect(manifest.schemaVersion).toBe(4);
+    expect(manifest.schemaVersion).toBe(5);
     expect(manifest.files.placeNeighbors).toBe("place_neighbors.json");
+    expect(manifest.files.tasteSpace).toBe("taste_space.json");
+  });
+
+  it("decodes the taste space aligned to the venue list", async () => {
+    const manifest = await loadManifest();
+    const venues = await loadVenues(manifest);
+    const space = await loadTasteSpace(manifest, venues);
+
+    expect(space).not.toBeNull();
+    expect(space!.vectors.length).toBe(venues.length * space!.dims);
+    expect(space!.covariance.length).toBe(space!.dims * space!.dims);
+    expect(space!.questions.length).toBeGreaterThanOrEqual(15);
+    // Exactly one anchor per interpretable dimension.
+    const anchors = space!.questions.filter((question) => question.anchor).map((question) => question.dimension);
+    expect(anchors.sort()).toEqual(["energy", "formality", "neighborhoodOrientation", "novelty", "wandering"]);
+    // Every retained area has a centroid of the right dimensionality.
+    for (const centroid of space!.areaCentroids.values()) expect(centroid.length).toBe(space!.dims);
   });
 
   it("resolves place neighbors into venue-referencing entries with 0-1 scores", async () => {

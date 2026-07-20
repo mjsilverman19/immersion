@@ -26,7 +26,7 @@ DAYS = ("sun", "mon", "tue", "wed", "thu", "fri", "sat")
 # DAYS tuple's position, which put engine Monday under "sun" and rotated every
 # day by one.)
 ENGINE_DOW = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 COMPLEMENT_ROLES = ("alongside", "after", "before")
 ALLOWED_OUTER = {
     "Greenpoint", "Williamsburg", "South Williamsburg", "East Williamsburg",
@@ -240,7 +240,7 @@ def feature_scores(row: dict, fingerprint: dict | None, hex_confidence: float) -
     }
 
 
-def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str], fingerprints: dict) -> list[str]:
+def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str], fingerprints: dict) -> list[dict]:
     venues = []
     for row in venue_rows:
         if row["hex_id"] not in retained_ids:
@@ -258,7 +258,7 @@ def export_venues(output: Path, venue_rows: list[dict], retained_ids: set[str], 
             "featureScores": feature_scores(row, fingerprints.get(row["id"]), hex_confidence),
         })
     write_json(output / "venues.json", venues)
-    return [venue["id"] for venue in venues]
+    return venues
 
 
 def export_place_neighbors(source: Path, output: Path, venue_ids: list[str]) -> None:
@@ -306,8 +306,13 @@ def main() -> None:
     fingerprints = json.loads((source / "place_fingerprints.json").read_text())
     retained_ids = export_geometry(source, output, venue_rows)
     metric_files = export_metrics(source, output, retained_ids)
-    venue_ids = export_venues(output, venue_rows, retained_ids, fingerprints)
-    export_place_neighbors(source, output, venue_ids)
+    venues = export_venues(output, venue_rows, retained_ids, fingerprints)
+    export_place_neighbors(source, output, [venue["id"] for venue in venues])
+    # Taste space is built from the exact exported venue list so the vector row
+    # order equals venues.json order by construction (the client indexes by it).
+    from build_taste_space import build_taste_space
+    taste_space = build_taste_space(fingerprints, venues, Path(__file__).parent / "taste_questions.json")
+    write_json(output / "taste_space.json", taste_space)
     shutil.copyfile(source / "nta.geojson", output / "neighborhoods.geojson")
     shutil.copyfile(source / "category_curves.json", output / "category_curves.json")
     manifest = {
@@ -315,7 +320,7 @@ def main() -> None:
         "coverageLabel": "Manhattan below 96th Street, Williamsburg, Greenpoint, and Long Island City",
         "timeModel": "typical_week", "timeResolutionMinutes": 60, "hexResolution": 10,
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "files": {"hexes": "hexes.geojson", "metricsByDay": metric_files, "venues": "venues.json", "categoryCurves": "category_curves.json", "neighborhoods": "neighborhoods.geojson", "placeNeighbors": "place_neighbors.json"},
+        "files": {"hexes": "hexes.geojson", "metricsByDay": metric_files, "venues": "venues.json", "categoryCurves": "category_curves.json", "neighborhoods": "neighborhoods.geojson", "placeNeighbors": "place_neighbors.json", "tasteSpace": "taste_space.json"},
     }
     write_json(output / "manifest.json", manifest)
     print(f"Exported {len(retained_ids)} supported hexes and frontend artifacts to {output}")

@@ -1,6 +1,17 @@
 import { metricAt } from "@/lib/baselineScore";
 import { ENGINE_SCORING, INTENT_SCORING, SCORING, type IntentScoring } from "@/lib/config";
-import { PERSONALIZATION_CAP, personalizeBaseline, tasteContributions, type TasteSignals } from "@/lib/personalization";
+import {
+  PERSONALIZATION_CAP,
+  personalizeBaseline,
+  personalizeBaselineVector,
+  tasteContributions,
+  tasteContributionsVector,
+  tasteLens,
+  type TasteLens,
+  type TasteSignals,
+} from "@/lib/personalization";
+import { venueVector } from "@/lib/tasteSpace";
+import { interpretableView } from "@/lib/tasteVector";
 import type {
   CategoryCurves,
   HexGeometryCollection,
@@ -13,6 +24,7 @@ import type {
   ScoreContribution,
   SelectedArea,
   TasteProfile,
+  TasteSpace,
   UserLocation,
   VenueRecord,
 } from "@/types/data";
@@ -39,6 +51,10 @@ interface RecommendationInput {
   tasteProfile: TasteProfile | null;
   mapMode: MapMode;
   userLocation: UserLocation | null;
+  /** Vector taste space (schema v5); null on legacy datasets or before load. */
+  tasteSpace?: TasteSpace | null;
+  /** venue id -> venues.json index, for taste-space vector lookup. */
+  venueIndex?: Map<string, number> | null;
 }
 
 interface AreaDraft {
@@ -170,21 +186,38 @@ function venueTasteSignals(venue: VenueRecord): TasteSignals {
 
 const chartValue = (value: number) => clamp01((value + 1) / 2);
 
-function venueRadarEvidence(venue: VenueRecord, draft: AreaDraft): RadarEvidence {
+/** The venue's interpretable 5-dim projection in the taste space, when both
+ * the space and the venue's index are available. */
+function venueView(space: TasteSpace | null | undefined, index: number | undefined) {
+  if (!space || index === undefined) return null;
+  return interpretableView(venueVector(space, index), space);
+}
+
+function venueRadarEvidence(
+  venue: VenueRecord,
+  draft: AreaDraft,
+  space?: TasteSpace | null,
+  index?: number,
+): RadarEvidence {
+  const view = venueView(space, index);
   const signals = venueTasteSignals(venue);
   const venueConfidence = venue.featureScores.evidenceConfidence;
   const areaOrientation = clamp01((draft.localOrientation - draft.visitorPressure + 1) / 2);
   return {
     values: {
-      energy: chartValue(signals.energy), novelty: chartValue(signals.novelty), wandering: chartValue(signals.wandering),
-      formality: chartValue(signals.formality), neighborhoodOrientation: areaOrientation,
+      energy: chartValue(view ? view.energy : signals.energy),
+      novelty: chartValue(view ? view.novelty : signals.novelty),
+      wandering: chartValue(view ? view.wandering : signals.wandering),
+      formality: chartValue(view ? view.formality : signals.formality),
+      neighborhoodOrientation: areaOrientation,
     },
     confidence: {
       energy: Math.max(0.35, venueConfidence), novelty: venueConfidence, wandering: venueConfidence,
       formality: venueConfidence, neighborhoodOrientation: draft.confidence,
     },
     source: {
-      energy: "category", novelty: "venue", wandering: "venue", formality: "category", neighborhoodOrientation: "area",
+      energy: view ? "venue" : "category", novelty: "venue", wandering: "venue",
+      formality: view ? "venue" : "category", neighborhoodOrientation: "area",
     },
   };
 }
@@ -192,24 +225,35 @@ function venueRadarEvidence(venue: VenueRecord, draft: AreaDraft): RadarEvidence
 /**
  * Radar evidence for a venue viewed outside any area's ranking context (e.g.
  * surfaced through "more like this" retrieval, possibly in a neighborhood that
- * isn't currently a recommended area). Neighborhood orientation has no area
- * draft to draw on, so it reads as neutral with zero confidence rather than
- * guessing.
+ * isn't currently a recommended area). With the taste space loaded, all five
+ * values project from the venue's own fingerprint vector (its area channel
+ * covers neighborhood orientation); on the legacy path, neighborhood
+ * orientation has no area draft to draw on, so it reads as neutral with zero
+ * confidence rather than guessing.
  */
-export function standaloneRadarEvidence(venue: VenueRecord): RadarEvidence {
+export function standaloneRadarEvidence(
+  venue: VenueRecord,
+  space?: TasteSpace | null,
+  index?: number,
+): RadarEvidence {
+  const view = venueView(space, index);
   const signals = venueTasteSignals(venue);
   const venueConfidence = venue.featureScores.evidenceConfidence;
   return {
     values: {
-      energy: chartValue(signals.energy), novelty: chartValue(signals.novelty), wandering: chartValue(signals.wandering),
-      formality: chartValue(signals.formality), neighborhoodOrientation: 0.5,
+      energy: chartValue(view ? view.energy : signals.energy),
+      novelty: chartValue(view ? view.novelty : signals.novelty),
+      wandering: chartValue(view ? view.wandering : signals.wandering),
+      formality: chartValue(view ? view.formality : signals.formality),
+      neighborhoodOrientation: view ? chartValue(view.neighborhoodOrientation) : 0.5,
     },
     confidence: {
       energy: Math.max(0.35, venueConfidence), novelty: venueConfidence, wandering: venueConfidence,
-      formality: venueConfidence, neighborhoodOrientation: 0,
+      formality: venueConfidence, neighborhoodOrientation: view ? venueConfidence : 0,
     },
     source: {
-      energy: "category", novelty: "venue", wandering: "venue", formality: "category", neighborhoodOrientation: "unknown",
+      energy: view ? "venue" : "category", novelty: "venue", wandering: "venue",
+      formality: view ? "venue" : "category", neighborhoodOrientation: view ? "venue" : "unknown",
     },
   };
 }
@@ -277,6 +321,7 @@ export function selectRecommendedSet(ranked: Array<{ venue: VenueRecord; score: 
 function rankVenues(
   draft: AreaDraft,
   input: RecommendationInput,
+  lens: TasteLens | null,
 ): RankedVenue[] {
   const eligible = draft.venues.filter((venue) => venueMatchesIntent(venue, input.intent) && venue.qualityPrior >= 0.2);
   const tasteActive = input.mapMode === "personalized" ? input.tasteProfile : null;
@@ -289,22 +334,29 @@ function rankVenues(
     const metric = hexRecord ? metricAt(hexRecord, input.hour) : null;
     const terms = venueContextTerms(temporal, metric, intentScoring);
     const base = SCORING.SCALE * venue.qualityPrior * terms.time * terms.activity * terms.local * terms.tourist;
+    const venueIdx = input.venueIndex?.get(venue.id);
+    const vector = lens && input.tasteSpace && venueIdx !== undefined ? venueVector(input.tasteSpace, venueIdx) : undefined;
     const signals = venueTasteSignals(venue);
     // Taste is a bounded ±15% lever on top of the contextual score, never a
-    // competing additive term.
-    const score = personalizeBaseline(base, tasteActive, signals, venue.featureScores.evidenceConfidence, SCORING.VENUE_PERSONALIZATION_CAP);
+    // competing additive term. With the taste space loaded the match runs in
+    // the fingerprint vector space; otherwise the legacy hand-signal path.
+    const score = vector
+      ? personalizeBaselineVector(base, lens, vector, venue.featureScores.evidenceConfidence, SCORING.VENUE_PERSONALIZATION_CAP)
+      : personalizeBaseline(base, tasteActive, signals, venue.featureScores.evidenceConfidence, SCORING.VENUE_PERSONALIZATION_CAP);
     const contributions: ScoreContribution[] = [
       ...(venue.qualityPrior >= 0.6 ? [{ feature: "quality", contribution: venue.qualityPrior, label: "Highly rated for its kind", evidenceConfidence: venue.qualityConfidence }] : []),
       ...activityContribution(metric, intentScoring),
       ...(terms.local > 1.02 ? [{ feature: "local", contribution: terms.local - 1, label: "In tune with the neighborhood right now", evidenceConfidence: metric?.localOrientationConfidence ?? 0 }] : []),
       ...(temporal >= 0.55 ? [{ feature: "time", contribution: 0.5 * temporal, label: "A good time for this kind of place", evidenceConfidence: metric?.confidence ?? 0 }] : []),
-      ...tasteContributions(tasteActive, signals, venue.featureScores.evidenceConfidence),
+      ...(vector
+        ? tasteContributionsVector(lens, vector, venue.featureScores.evidenceConfidence)
+        : tasteContributions(tasteActive, signals, venue.featureScores.evidenceConfidence)),
     ];
     return {
       venue,
       score,
       timeFit: temporal,
-      radarEvidence: venueRadarEvidence(venue, draft),
+      radarEvidence: venueRadarEvidence(venue, draft, input.tasteSpace, venueIdx),
       contributions: contributions.filter((item) => item.contribution > 0).sort((a, b) => b.contribution - a.contribution).slice(0, 3),
     };
   }).sort((a, b) => b.score - a.score);
@@ -331,6 +383,12 @@ export function buildAreaRecommendations(input: RecommendationInput): SelectedAr
   const tasteHasEnoughEvidence = input.mapMode === "personalized"
     && Boolean(input.tasteProfile && input.tasteProfile.confidence >= MIN_PERSONALIZED_GLOW_CONFIDENCE);
   const effectiveInput = tasteHasEnoughEvidence ? input : { ...input, tasteProfile: null, mapMode: "baseline" as const };
+  // Computed once per pass: the user's effective taste direction in the shipped
+  // vector space. Null on legacy datasets, v2 profiles, or baseline mode — all
+  // per-row scoring then falls back to the hand-signal path.
+  const lens = effectiveInput.mapMode === "personalized"
+    ? tasteLens(effectiveInput.tasteProfile, effectiveInput.tasteSpace ?? null)
+    : null;
   const venuesByArea = new Map<string, VenueRecord[]>();
   input.venues.forEach((venue) => {
     if (!venue.neighborhoodId) return;
@@ -399,13 +457,22 @@ export function buildAreaRecommendations(input: RecommendationInput): SelectedAr
       neighborhoodOrientation: draft.localOrientation - draft.visitorPressure,
     };
     const activeTaste = effectiveInput.mapMode === "personalized" ? effectiveInput.tasteProfile : null;
-    let score = personalizeBaseline(baselineScore, activeTaste, signals, draft.confidence);
+    // Area taste runs against the neighborhood's venue-centroid vector when the
+    // space is loaded. This deliberately trades the time-varying activity→energy
+    // signal for a stable area character: taste is a stable preference and time
+    // context already lives in the baseline score.
+    const centroid = lens ? effectiveInput.tasteSpace?.areaCentroids.get(draft.id) : undefined;
+    let score = centroid
+      ? personalizeBaselineVector(baselineScore, lens, centroid, draft.confidence)
+      : personalizeBaseline(baselineScore, activeTaste, signals, draft.confidence);
     if (draft.distanceMiles !== undefined) score *= 1 + 0.08 * Math.exp(-draft.distanceMiles / 1.5);
     const contributions: ScoreContribution[] = [
       { feature: "activity", contribution: 0.45 * activityRank, label: "The area has a strong rhythm at this time", evidenceConfidence: draft.confidence },
       { feature: "intent", contribution: 0.25 * supplyRank, label: `${categoryBenefit(input.intent)} nearby`, evidenceConfidence: 1 },
       ...(draft.wandering >= 0.35 ? [{ feature: "wandering", contribution: 0.13 * draft.wandering, label: "Several places are close enough to wander between", evidenceConfidence: draft.confidence }] : []),
-      ...tasteContributions(activeTaste, signals, draft.confidence),
+      ...(centroid
+        ? tasteContributionsVector(lens, centroid, draft.confidence)
+        : tasteContributions(activeTaste, signals, draft.confidence)),
     ];
     return { draft, score, baselineScore, contributions: contributions.sort((a, b) => b.contribution - a.contribution).slice(0, 3) };
   });
@@ -425,7 +492,7 @@ export function buildAreaRecommendations(input: RecommendationInput): SelectedAr
     const glowStrength = clamp01(
       (tasteHasEnoughEvidence ? tasteStrength : activityStrength) * (0.35 + 0.65 * draft.confidence),
     );
-    const mapVenues = rankVenues(draft, effectiveInput);
+    const mapVenues = rankVenues(draft, effectiveInput, lens);
     return ({
     id: draft.id, name: draft.name, borough: draft.borough, center: draft.center, h3Ids: draft.h3Ids,
     activeCells: draft.activeCells,

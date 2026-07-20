@@ -1,3 +1,4 @@
+import { decodeTasteSpace } from "@/lib/tasteSpace";
 import type {
   CompactMetricSlice,
   CategoryCurves,
@@ -9,6 +10,8 @@ import type {
   PlaceNeighborIndex,
   PlaceNeighborsArtifact,
   SimilarChannel,
+  TasteSpace,
+  TasteSpaceArtifact,
   VenueRecord,
   WeekdayKey,
 } from "@/types/data";
@@ -26,7 +29,9 @@ export const cityDataUrl = (filename: string) => `${DATA_ROOT}${filename}`;
 
 export async function loadManifest(): Promise<DatasetManifest> {
   const manifest = await fetchJson<DatasetManifest>(cityDataUrl("manifest.json"));
-  if (manifest.schemaVersion !== 4 || manifest.city !== "nyc") {
+  // v4 datasets are still valid — they simply carry no taste-space artifact,
+  // so the app runs the legacy 5-dim taste path.
+  if (![4, 5].includes(manifest.schemaVersion) || manifest.city !== "nyc") {
     throw new Error(`Unsupported NYC dataset schema ${manifest.schemaVersion}`);
   }
   return manifest;
@@ -110,4 +115,17 @@ export async function loadPlaceNeighbors(
     index.set(seed.id, { similar: similarNeighbors, complements: complementNeighbors });
   });
   return index;
+}
+
+/**
+ * Load and decode the taste-space artifact (schema v5+). Returns null on older
+ * datasets so callers fall back to the legacy 5-dim taste path.
+ */
+export async function loadTasteSpace(
+  manifest: DatasetManifest,
+  venues: VenueRecord[],
+): Promise<TasteSpace | null> {
+  if (!manifest.files.tasteSpace) return null;
+  const artifact = await fetchJson<TasteSpaceArtifact>(cityDataUrl(manifest.files.tasteSpace));
+  return decodeTasteSpace(artifact, venues.length);
 }
