@@ -15,12 +15,13 @@ import { INTENT_ORDER, INTENT_VISUALS } from "@/lib/brand";
 import { lensWeightsFromTaste, rankComplements, rankSimilar } from "@/lib/placeRetrieval";
 import { buildAreaRecommendations, standaloneRadarEvidence } from "@/lib/recommendations";
 import { localUserStorage } from "@/lib/storage";
+import { currentTypicalTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { Intent, MapMode, TasteProfile, UserLocation, VenueRecord, WeekdayKey } from "@/types/data";
 
 const MapView = () => {
-  const [day, setDay] = useState<WeekdayKey>("sat");
-  const [hour, setHour] = useState(15);
+  const [day, setDay] = useState<WeekdayKey>(() => currentTypicalTime().day);
+  const [hour, setHour] = useState(() => currentTypicalTime().hour);
   const [intent, setIntentState] = useState<Intent>(() => localUserStorage.getIntent());
   const [mapMode, setMapMode] = useState<MapMode>("baseline");
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
