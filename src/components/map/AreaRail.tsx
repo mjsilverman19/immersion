@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, MapPin, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { SelectedArea, VenueRecord } from "@/types/data";
 
@@ -39,22 +39,17 @@ export function AreaRail({ areas, collapsed, onCollapsedChange, onSelect }: Area
       <button type="button" onClick={() => onCollapsedChange(true)} aria-label="Minimize place recommendations" className="brand-icon-button absolute -top-4 right-4 z-10 min-h-9 min-w-9 p-2 text-muted-foreground hover:text-foreground">
         <ChevronDown className="h-4 w-4" />
       </button>
-      <div className="flex w-full gap-2 overflow-x-auto px-3 pb-1 scrollbar-hide" aria-label="Places to try">
+      <div className="flex w-full justify-center gap-2 overflow-x-auto px-3 pb-1 scrollbar-hide" aria-label="Places to try">
         {picks.map(({ area, ranked }, index) => (
           <button
             key={ranked.venue.id}
             type="button"
             onClick={() => onSelect(area, ranked.venue)}
-            className="place-glass flex min-w-[230px] flex-1 items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:border-primary/35 hover:bg-background/75"
+            className="place-glass min-w-[9.5rem] max-w-[11.5rem] shrink-0 rounded-2xl px-3.5 py-2.5 text-left transition hover:border-primary/35 hover:bg-background/75"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-              {index === 0 ? <Sparkles className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-primary">{index === 0 ? "Top pick" : "Also for you"}</span>
-              <span className="mt-0.5 block truncate font-serif text-xl leading-tight">{ranked.venue.name}</span>
-              <span className="mt-1 block truncate text-[10px] capitalize text-muted-foreground">{ranked.venue.category} · {area.name}</span>
-            </span>
+            <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-primary">{index === 0 ? "Top pick" : "Also for you"}</span>
+            <span className="mt-0.5 block truncate font-serif text-lg leading-tight">{ranked.venue.name}</span>
+            <span className="mt-1 block truncate text-[10px] capitalize text-muted-foreground">{ranked.venue.category} · {area.name}</span>
           </button>
         ))}
       </div>
