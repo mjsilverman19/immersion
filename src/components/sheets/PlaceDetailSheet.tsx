@@ -61,8 +61,8 @@ export function PlaceDetailSheet({
     return (
       <aside className="place-glass absolute bottom-3 left-1/2 z-50 flex max-w-[92vw] -translate-x-1/2 items-center gap-2 rounded-full p-1.5 pl-4 md:bottom-5 md:left-5 md:translate-x-0">
         <button type="button" onClick={() => setMinimized(false)} className="min-w-0 text-left">
-          <span className="text-[9px] font-semibold uppercase tracking-[0.13em] text-primary">Place</span>
-          <span className="ml-2 max-w-[55vw] truncate align-bottom font-serif text-sm">{venue.name}</span>
+          <span className="type-eyebrow text-primary">Place</span>
+          <span className="type-venue ml-2 max-w-[55vw] truncate align-bottom text-[15px]">{venue.name}</span>
         </button>
         <button type="button" onClick={() => setMinimized(false)} aria-label="Expand place details" className="rounded-full p-2 text-muted-foreground hover:bg-muted">
           <Maximize2 className="h-4 w-4" />
@@ -84,9 +84,9 @@ export function PlaceDetailSheet({
           <Minimize2 className="h-4 w-4" />
         </button>
 
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">{contextLabel}</p>
-        <h2 className="mt-1 pr-16 font-serif text-4xl leading-[0.98]">{venue.name}</h2>
-        <p className="mt-2 text-sm capitalize text-muted-foreground">
+        <p className="type-eyebrow text-primary">{contextLabel}</p>
+        <h2 className="type-logo mt-1 pr-16 text-[26px]">{venue.name}</h2>
+        <p className="type-body mt-2 capitalize text-muted-foreground">
           {venue.category}{venue.neighborhoodId ? ` · ${venue.neighborhoodId}` : ""}
         </p>
 
@@ -120,17 +120,17 @@ export function PlaceDetailSheet({
         </div>
 
         {learningFeedback && (
-          <p role="status" className="mt-3 text-center text-[11px] text-muted-foreground">{learningFeedback}</p>
+          <p role="status" className="type-body mt-3 text-center text-muted-foreground">{learningFeedback}</p>
         )}
 
         {place.endorsed && (
-          <label className="mt-4 block text-sm font-medium">
+          <label className="type-panel mt-4 block">
             Why would you recommend it?
             <textarea
               value={place.note ?? ""}
               onChange={(event) => onUpdate({ note: event.target.value })}
               placeholder="Optional note for a friend"
-              className="mt-2 min-h-20 w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm font-normal outline-none focus:border-primary"
+              className="type-body mt-2 min-h-20 w-full resize-none rounded-xl border border-border bg-card px-3 py-2 outline-none focus:border-primary"
             />
           </label>
         )}
@@ -152,7 +152,7 @@ export function PlaceDetailSheet({
             onViewOnMaps();
             setLearningFeedback("Opened in Google Maps.");
           }}
-          className="brand-primary-button flex items-center justify-center gap-2 text-sm"
+          className="brand-primary-button flex items-center justify-center gap-2"
         >
           <ExternalLink className="h-4 w-4" /> View on Google Maps
         </a>
@@ -167,7 +167,7 @@ function PlaceAction({ active, label, icon, onClick }: { active: boolean; label:
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex min-h-14 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] ${active ? "border-primary bg-primary text-primary-foreground" : "border-white/50 bg-background/40 text-foreground hover:border-primary/35 hover:bg-background/60"}`}
+      className={`type-button flex min-h-14 items-center justify-center gap-1.5 rounded-xl border px-2 ${active ? "border-primary bg-primary text-primary-foreground" : "border-white/50 bg-background/40 text-foreground hover:border-primary/35 hover:bg-background/60"}`}
     >
       {icon}<span>{label}</span>
     </button>

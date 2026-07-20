@@ -12,7 +12,7 @@ describe("brand visual contracts", () => {
     expect(INTENT_VISUALS.nightlife.color).toBe(BRAND.highlight);
   });
 
-  it("builds the map with brand surfaces and Inter labels", () => {
+  it("builds the map with brand surfaces and Bricolage labels", () => {
     const style = buildBaseStyle();
     const layers = style.layers as unknown as Array<{
       id: string;
@@ -31,7 +31,10 @@ describe("brand visual contracts", () => {
     expect(background?.paint?.["background-color"]).toBe(BRAND.paper);
     expect(park?.paint?.["fill-color"]).toBe(BRAND.park);
     expect(water?.paint?.["fill-color"]).toBe(BRAND.water);
-    expect(placeLabels?.layout?.["text-font"]).toEqual(MAP_FONT_STACKS.regular);
-    expect(waterLabels?.layout?.["text-font"]).toEqual(MAP_FONT_STACKS.regular);
+    expect(placeLabels?.layout?.["text-font"]).toEqual(MAP_FONT_STACKS.medium);
+    expect(waterLabels?.layout?.["text-font"]).toEqual(MAP_FONT_STACKS.medium);
+    expect(placeLabels?.paint?.["text-halo-color"]).toBe("#ffffff");
+    expect(placeLabels?.paint?.["text-halo-width"]).toBe(1.2);
+    expect(MAP_FONT_STACKS.semibold).toEqual(["Bricolage Grotesque SemiBold"]);
   });
 });

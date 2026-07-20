@@ -14,7 +14,10 @@ export const BRAND = {
 } as const;
 
 export const MAP_FONT_STACKS = {
-  regular: ["Inter Regular"],
+  /** Neighborhood / place labels — Bricolage Medium (500) glyph stack. */
+  medium: ["Bricolage Grotesque Medium"],
+  /** Venue pin labels over heat — Bricolage SemiBold (600) glyph stack. */
+  semibold: ["Bricolage Grotesque SemiBold"],
 } as const;
 
 export interface IntentVisual {

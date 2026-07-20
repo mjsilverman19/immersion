@@ -13,8 +13,6 @@
     "data:export": "python3 pipeline/export_frontend.py"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.2.8",
-    "@fontsource/playfair-display": "^5.2.8",
     "clsx": "^2.1.1",
     "lucide-react": "^0.462.0",
     "maplibre-gl": "^4.7.1",

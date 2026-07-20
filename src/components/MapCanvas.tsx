@@ -263,10 +263,10 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       "circle-opacity": 0.95,
       } });
       map.addLayer({ id: AREA_LABEL, type: "symbol", source: AREA_SOURCE, layout: {
-      "text-field": ["get", "name"], "text-font": [...MAP_FONT_STACKS.regular],
+      "text-field": ["get", "name"], "text-font": [...MAP_FONT_STACKS.medium],
       "text-size": ["interpolate", ["linear"], ["zoom"], 10, 12, 14, 16],
       "text-offset": [0, 1.2], "text-anchor": "top", "text-allow-overlap": false,
-      }, paint: { "text-color": PALETTE.text, "text-halo-color": PALETTE.paper, "text-halo-width": 1.5 } });
+      }, paint: { "text-color": PALETTE.text, "text-halo-color": "#ffffff", "text-halo-width": 1.2 } });
       for (const layer of [AREA_HALO, AREA_CORE, AREA_LABEL]) {
         map.on("mouseenter", layer, () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", layer, () => { map.getCanvas().style.cursor = ""; });
@@ -397,9 +397,9 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       } });
       if (!map.getLayer(TOP_VENUE_LABELS)) map.addLayer({ id: TOP_VENUE_LABELS, type: "symbol", source: VENUE_SOURCE, minzoom: 13.4, filter: ["<=", ["get", "rank"], 5], layout: {
         "text-field": ["get", "name"],
-        "text-font": [...MAP_FONT_STACKS.regular], "text-size": 11, "text-offset": [1.25, 0], "text-anchor": "left",
+        "text-font": [...MAP_FONT_STACKS.semibold], "text-size": 11, "text-offset": [1.25, 0], "text-anchor": "left",
         "text-optional": true, "text-padding": 8,
-      }, paint: { "text-color": PALETTE.text, "text-halo-color": PALETTE.paper, "text-halo-width": 2 } });
+      }, paint: { "text-color": PALETTE.text, "text-halo-color": "#ffffff", "text-halo-width": 1.2 } });
       map.setPaintProperty(VENUE_DOTS, "circle-color", intentColor);
       map.setPaintProperty(TOP_VENUE_DOTS, "circle-color", intentColor);
       const interactiveLayers = [VENUE_DOTS, TOP_VENUE_DOTS, TOP_VENUE_LABELS];

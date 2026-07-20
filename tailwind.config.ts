@@ -48,8 +48,13 @@ export default {
         },
       },
       fontFamily: {
-        serif: ["Playfair Display", "Georgia", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Bricolage Grotesque", "Helvetica Neue", "Arial", "sans-serif"],
+      },
+      fontWeight: {
+        // Product typography caps at 600; do not introduce 700+.
+        normal: "400",
+        medium: "500",
+        semibold: "600",
       },
       borderRadius: {
         lg: "var(--radius)",
