@@ -4,7 +4,6 @@ import { MapCanvas } from "@/components/MapCanvas";
 import { AreaRail } from "@/components/map/AreaRail";
 import { MapLoadingState } from "@/components/map/MapLoadingState";
 import { TypicalTimeControl } from "@/components/map/TypicalTimeControl";
-import { AreaSheet } from "@/components/sheets/AreaSheet";
 import { PlaceSheet } from "@/components/sheets/PlaceSheet";
 import { VenueSheet } from "@/components/sheets/VenueSheet";
 import { TasteFlow } from "@/components/taste/TasteFlow";
@@ -257,7 +256,6 @@ const MapView = () => {
         <div className="pointer-events-auto w-full max-w-md px-3"><TypicalTimeControl day={day} hour={hour} onDayChange={setDay} onHourChange={setHour} /></div>
       </div>}
 
-      <AreaSheet selected={selectedArea} day={day} hour={hour} onClose={() => setSelectedAreaId(null)} onSelectVenue={selectVenue} />
       <VenueSheet ranked={selectedRankedVenue} tasteProfile={activeTasteProfile} state={selectedRankedVenue ? places[selectedRankedVenue.venue.id] : undefined} onUpdate={updateSelectedPlace} onViewOnMaps={recordMapView} onShapeTaste={() => { setTasteOpen(true); setShowTasteNudge(false); }} onClose={() => setSelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
       <PlaceSheet venue={citySelectedVenue} tasteProfile={activeTasteProfile} state={citySelectedVenue ? places[citySelectedVenue.id] : undefined} onUpdate={updateSelectedPlace} onViewOnMaps={recordMapView} onShapeTaste={() => { setTasteOpen(true); setShowTasteNudge(false); }} onClose={() => setCitySelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
       <TasteFlow open={tasteOpen} surfacedVenues={(allAreas[0]?.recommendedVenues ?? []).slice(0, 2).map((item) => item.venue.name)} onClose={closeTasteFlow} onPreview={(profile) => { setPreviewTasteProfile(profile); setMapMode("personalized"); }} onComplete={(profile) => { setTasteProfile(profile); setPreviewTasteProfile(null); setMapMode("personalized"); setTasteOpen(false); setShowTasteReveal(true); }} />
