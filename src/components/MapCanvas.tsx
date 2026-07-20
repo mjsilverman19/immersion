@@ -145,15 +145,36 @@ function cellShapes(geometry: HexGeometryCollection | null, selectedArea: Select
   });
 }
 
+// Grid pitch ≈ one res-10 hex diameter, so each cell lands in only a few buckets
+// and a midpoint lookup scans a handful of cells instead of the whole area.
+const CELL_BUCKET_DEGREES = 0.0015;
+
+function buildCellIndex(cells: CellShape[]): Map<string, CellShape[]> {
+  const index = new Map<string, CellShape[]>();
+  for (const cell of cells) {
+    for (let gridX = Math.floor(cell.bounds[0] / CELL_BUCKET_DEGREES); gridX <= Math.floor(cell.bounds[2] / CELL_BUCKET_DEGREES); gridX += 1) {
+      for (let gridY = Math.floor(cell.bounds[1] / CELL_BUCKET_DEGREES); gridY <= Math.floor(cell.bounds[3] / CELL_BUCKET_DEGREES); gridY += 1) {
+        const key = `${gridX}:${gridY}`;
+        const bucket = index.get(key);
+        if (bucket) bucket.push(cell);
+        else index.set(key, [cell]);
+      }
+    }
+  }
+  return index;
+}
+
 function splitStreetSegments(features: maplibregl.MapGeoJSONFeature[], cells: CellShape[]): GeoJSON.FeatureCollection {
   const candidates: StreetSegmentCandidate[] = [];
   const seen = new Set<string>();
+  const cellIndex = buildCellIndex(cells);
   const addLine = (coordinates: number[][], roadClass: unknown) => {
     for (let index = 1; index < coordinates.length; index += 1) {
       const start = coordinates[index - 1];
       const end = coordinates[index];
       const midpoint: [number, number] = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
-      const cell = cells.find((candidate) => midpoint[0] >= candidate.bounds[0] && midpoint[0] <= candidate.bounds[2] && midpoint[1] >= candidate.bounds[1] && midpoint[1] <= candidate.bounds[3] && pointInRing(midpoint, candidate.ring));
+      const bucket = cellIndex.get(`${Math.floor(midpoint[0] / CELL_BUCKET_DEGREES)}:${Math.floor(midpoint[1] / CELL_BUCKET_DEGREES)}`);
+      const cell = bucket?.find((candidate) => midpoint[0] >= candidate.bounds[0] && midpoint[0] <= candidate.bounds[2] && midpoint[1] >= candidate.bounds[1] && midpoint[1] <= candidate.bounds[3] && pointInRing(midpoint, candidate.ring));
       if (!cell || cell.confidence < 0.2 || cell.score < 0.08) continue;
       const a = `${start[0].toFixed(5)},${start[1].toFixed(5)}`;
       const b = `${end[0].toFixed(5)},${end[1].toFixed(5)}`;
@@ -327,17 +348,26 @@ export function MapCanvas({ geometry, areas, selectableAreas, selectedArea, sele
       };
       rebuild();
       map.once("idle", rebuild);
-      map.on("moveend", rebuild);
-      map.on("zoomend", rebuild);
+      map.on("moveend", scheduleRebuild);
+      map.on("zoomend", scheduleRebuild);
+    };
+    let rebuildTimer: number | null = null;
+    // Deferring the pan/zoom rebuild off moveend keeps the drag-settle frame
+    // free; the highlighted streets follow a beat later.
+    const scheduleRebuild = () => {
+      if (rebuildTimer !== null) window.clearTimeout(rebuildTimer);
+      rebuildTimer = window.setTimeout(() => {
+        rebuildTimer = null;
+        rebuild?.();
+      }, 160);
     };
     const cancelStyleRetry = runAfterStyleInit(map, setup);
     return () => {
       cancelStyleRetry();
-      if (rebuild) {
-        map.off("idle", rebuild);
-        map.off("moveend", rebuild);
-        map.off("zoomend", rebuild);
-      }
+      if (rebuildTimer !== null) window.clearTimeout(rebuildTimer);
+      if (rebuild) map.off("idle", rebuild);
+      map.off("moveend", scheduleRebuild);
+      map.off("zoomend", scheduleRebuild);
     };
   }, [areas, geometry, ready, selectedArea]);
 
