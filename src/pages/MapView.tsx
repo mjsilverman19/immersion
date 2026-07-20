@@ -55,8 +55,9 @@ const MapView = () => {
     });
   }, [activeTasteProfile, city.categoryCurves, city.geometry, city.metrics, city.venues, hour, intent, mapMode, userLocation]);
 
-  const areas = allAreas.slice(0, 3);
-  const selectedArea = allAreas.find((area) => area.id === selectedAreaId) ?? null;
+  const areas = useMemo(() => allAreas.slice(0, 3), [allAreas]);
+  const selectedArea = useMemo(() => allAreas.find((area) => area.id === selectedAreaId) ?? null, [allAreas, selectedAreaId]);
+  const selectedVenues = useMemo(() => selectedArea?.mapVenues ?? [], [selectedArea]);
   const selectedRankedVenue = selectedArea?.mapVenues.find((item) => item.venue.id === selectedVenueId) ?? null;
   const activeIntentVisual = INTENT_VISUALS[intent];
 
@@ -176,7 +177,7 @@ const MapView = () => {
 
   return (
     <main className="relative h-[100dvh] w-full overflow-hidden bg-background">
-      <MapCanvas className="absolute inset-0" geometry={city.geometry} areas={areas} selectableAreas={allAreas} selectedArea={selectedArea} selectedVenues={selectedArea?.mapVenues ?? []} mapMode={mapMode} intent={intent} userLocation={userLocation} onSelectArea={(area) => { setSelectedVenueId(null); setCitySelectedVenueId(null); setSelectedAreaId(area.id); }} onSelectVenue={selectVenue} retrievalVenues={retrievalVenues} focusVenue={citySelectedVenue} onSelectPlace={selectPlaceFromMap} />
+      <MapCanvas className="absolute inset-0" geometry={city.geometry} areas={areas} selectableAreas={allAreas} selectedArea={selectedArea} selectedVenues={selectedVenues} mapMode={mapMode} intent={intent} userLocation={userLocation} onSelectArea={(area) => { setSelectedVenueId(null); setCitySelectedVenueId(null); setSelectedAreaId(area.id); }} onSelectVenue={selectVenue} retrievalVenues={retrievalVenues} focusVenue={citySelectedVenue} onSelectPlace={selectPlaceFromMap} />
       <MapLoadingState progress={city.progress} label={city.loadingLabel} error={city.error} />
 
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:p-5">
