@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, MapPin, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type { SelectedArea, VenueRecord } from "@/types/data";
 
@@ -45,11 +45,8 @@ export function AreaRail({ areas, collapsed, onCollapsedChange, onSelect }: Area
             key={ranked.venue.id}
             type="button"
             onClick={() => onSelect(area, ranked.venue)}
-            className="place-glass flex min-w-[230px] flex-1 items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:border-primary/35 hover:bg-background/75"
+            className="place-glass flex min-w-[230px] flex-1 items-center rounded-2xl px-3 py-3 text-left transition hover:border-primary/35 hover:bg-background/75"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-              {index === 0 ? <Sparkles className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
-            </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-primary">{index === 0 ? "Top pick" : "Also for you"}</span>
               <span className="mt-0.5 block truncate font-serif text-xl leading-tight">{ranked.venue.name}</span>
