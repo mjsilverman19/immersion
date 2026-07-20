@@ -2,10 +2,9 @@
  * Map configuration.
  *
  * Phase 1 uses keyless vector tiles only — no proprietary access token.
- * Base geometry comes from OpenFreeMap (OpenMapTiles schema); glyphs come
- * from the community openmaptiles font server (which carries a serif face
- * we use for venue labels). Both are restyled into the Immersion brand
- * surface in `mapStyle.ts`.
+ * Base geometry comes from OpenFreeMap (OpenMapTiles schema). Map labels use
+ * self-hosted Bricolage Grotesque glyph PBFs under /public/fonts. Both are
+ * restyled into the Immersion brand surface in `mapStyle.ts`.
  */
 
 import type { Intent } from "@/types/data";
@@ -15,9 +14,9 @@ export const TILE_URL =
   import.meta.env.VITE_TILE_URL || "https://tiles.openfreemap.org/planet";
 
 /**
- * Self-hosted Inter glyphs generated into /public/fonts.
- * Kept in-app so venue and place labels render in the brand sans face with
- * no third-party font server dependency.
+ * Self-hosted Bricolage Grotesque glyphs generated into /public/fonts.
+ * Medium for place labels, SemiBold for venue pins over heat — see
+ * `npm run fonts:map` and MAP_FONT_STACKS in brand.ts.
  */
 export const GLYPHS_URL =
   import.meta.env.VITE_GLYPHS_URL ||

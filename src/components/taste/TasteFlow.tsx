@@ -67,21 +67,21 @@ export function TasteFlow({ open, onClose, onPreview, onComplete }: TasteFlowPro
     <section role="dialog" aria-modal="true" aria-labelledby="taste-question" className="brand-sheet pointer-events-auto relative max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-[28px] p-5 md:max-h-[88dvh] md:p-6">
       {!started ? <>
         <button type="button" onClick={onClose} aria-label="Close taste questions" className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-primary">Shape my map</p>
-        <h2 id="taste-question" className="mt-3 font-serif text-3xl leading-tight">Five quick choices.</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Watch New York change as we learn what draws you in. Each answer applies now and can be changed later.</p>
-        <button type="button" onClick={() => setStarted(true)} className="brand-primary-button mt-6 w-full text-sm">Begin</button>
+        <p className="type-eyebrow text-primary">Shape my map</p>
+        <h2 id="taste-question" className="type-headline mt-3">Five quick choices.</h2>
+        <p className="type-body mt-2 leading-relaxed text-muted-foreground">Watch New York change as we learn what draws you in. Each answer applies now and can be changed later.</p>
+        <button type="button" onClick={() => setStarted(true)} className="brand-primary-button mt-6 w-full">Begin</button>
       </> : <>
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => index ? setIndex(index - 1) : setStarted(false)} aria-label={index ? "Previous question" : "Quiz introduction"} className="rounded-full p-2 text-muted-foreground hover:bg-muted"><ArrowLeft className="h-4 w-4" /></button>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Shape my map · {index + 1} of {QUESTIONS.length}</p>
+          <p className="type-eyebrow text-muted-foreground">Shape my map · {index + 1} of {QUESTIONS.length}</p>
           <button type="button" onClick={onClose} aria-label="Close taste questions" className="rounded-full p-2 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
-        <h2 id="taste-question" className="mx-auto mt-5 max-w-sm text-center font-serif text-3xl leading-tight">{question.prompt}</h2>
+        <h2 id="taste-question" className="type-headline mx-auto mt-5 max-w-sm text-center">{question.prompt}</h2>
         <div className="mt-5 grid gap-2">
-          {choices.map((choice) => <button key={choice.value} type="button" onClick={() => answer(choice.value)} className="min-h-20 rounded-2xl border border-white/50 bg-background/40 px-4 py-4 text-left font-serif text-lg leading-snug transition hover:border-primary/40 hover:bg-background/60">{choice.label}</button>)}
+          {choices.map((choice) => <button key={choice.value} type="button" onClick={() => answer(choice.value)} className="type-headline min-h-20 rounded-2xl border border-white/50 bg-background/40 px-4 py-4 text-left transition hover:border-primary/40 hover:bg-background/60">{choice.label}</button>)}
         </div>
-        <div className="mt-4 flex justify-center gap-5 text-sm"><button type="button" onClick={() => answer(0)} className="text-foreground underline-offset-4 hover:underline">Both</button><button type="button" onClick={() => answer(undefined)} className="text-muted-foreground underline-offset-4 hover:underline">Skip</button></div>
+        <div className="type-body mt-4 flex justify-center gap-5"><button type="button" onClick={() => answer(0)} className="text-foreground underline-offset-4 hover:underline">Both</button><button type="button" onClick={() => answer(undefined)} className="text-muted-foreground underline-offset-4 hover:underline">Skip</button></div>
         <div className="mt-5 flex gap-1">{QUESTIONS.map((item, step) => <span key={item.dimension} className={`h-1 flex-1 rounded-full ${step <= index ? "bg-primary" : "bg-muted"}`} />)}</div>
       </>}
     </section>

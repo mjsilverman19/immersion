@@ -186,7 +186,7 @@ export function buildBaseStyle(): StyleSpecification {
         "source-layer": "water_name",
         layout: {
           "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
-          "text-font": [...MAP_FONT_STACKS.regular],
+          "text-font": [...MAP_FONT_STACKS.medium],
           "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 16, 14],
           "text-letter-spacing": 0.1,
           "text-max-width": 6,
@@ -194,12 +194,12 @@ export function buildBaseStyle(): StyleSpecification {
         paint: {
           "text-color": PALETTE.route,
           "text-opacity": 0.5,
-          "text-halo-color": PALETTE.water,
-          "text-halo-width": 1,
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.2,
         },
       },
 
-      // Place labels — neighborhoods, towns, cities — in Inter.
+      // Place labels — neighborhoods, towns, cities — Bricolage Medium.
       {
         id: "place-labels",
         type: "symbol",
@@ -212,7 +212,7 @@ export function buildBaseStyle(): StyleSpecification {
         ],
         layout: {
           "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
-          "text-font": [...MAP_FONT_STACKS.regular],
+          "text-font": [...MAP_FONT_STACKS.medium],
           "text-size": [
             "interpolate",
             ["linear"],
@@ -246,8 +246,8 @@ export function buildBaseStyle(): StyleSpecification {
             12,
             ["case", ["in", ["get", "class"], ["literal", ["city", "town"]]], 0, 0.55],
           ],
-          "text-halo-color": PALETTE.paper,
-          "text-halo-width": 1.4,
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.2,
         },
       },
     ],

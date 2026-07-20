@@ -65,7 +65,7 @@ export function TasteRadar({
     <section className="mt-5 rounded-2xl border border-white/60 bg-background/50 p-4 shadow-[0_5px_18px_rgba(36,34,31,0.04)] backdrop-blur-lg" aria-labelledby="place-fit-heading">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p id="place-fit-heading" className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+          <p id="place-fit-heading" className="type-eyebrow text-primary">
             {taste ? "Taste fit" : "Place character"}
           </p>
           <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
@@ -73,7 +73,7 @@ export function TasteRadar({
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rotate-45 bg-foreground" />This place</span>
           </div>
         </div>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-[9px] font-medium text-muted-foreground">
+        <span className="type-body rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
           {evidenceConfidenceLabel(evidence)}
         </span>
       </div>
@@ -100,7 +100,7 @@ export function TasteRadar({
             return (
               <g key={axis.key} opacity={0.4 + evidence.confidence[axis.key] * 0.6}>
                 <line x1="100" y1="90" x2={x} y2={y} stroke={BRAND.border} strokeWidth="1" />
-                <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill={BRAND.muted} fontFamily="Inter">
+                <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fontSize="8" fill={BRAND.muted} fontFamily="Bricolage Grotesque, Helvetica Neue, Arial, sans-serif">
                   {axis.high}
                 </text>
               </g>
@@ -121,7 +121,7 @@ export function TasteRadar({
         <button
           type="button"
           onClick={onShapeTaste}
-          className="mt-4 w-full rounded-full border border-primary/30 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/5"
+          className="type-button mt-4 w-full rounded-full border border-primary/30 px-3 py-2 text-primary hover:bg-primary/5"
         >
           Shape my map to compare
         </button>
