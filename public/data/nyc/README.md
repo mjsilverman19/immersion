@@ -23,8 +23,16 @@ expands them to named values in `src/lib/dataLoader.ts`. The time series has 24
 hourly observations per weekday and describes a modeled typical week, not live
 conditions.
 
+Schema 5 adds `taste_space.json`: 47-dim per-venue taste vectors (base64 int8
+rows in `venues.json` order, dequantized as `value * quantClip / 127`), the
+corpus covariance, per-neighborhood centroids, interpretive axes for the five
+radar dimensions, and the adaptive quiz question bank with corpus-derived axes
+and per-category sigmas. `src/lib/tasteSpace.ts` decodes it; a schema-4 dataset
+without the file keeps the app on the legacy 5-dim taste path.
+
 To refresh the checked-in artifacts from a sibling engine checkout:
 
 ```bash
 npm run data:export -- ../immersion_data/data
+python3 pipeline/validate_taste_quiz.py
 ```

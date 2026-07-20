@@ -1,0 +1,598 @@
+{
+  "bankVersion": 1,
+  "comment": "Taste quiz question bank. Each side is a declarative selector over the venue corpus: `categories` restricts by venue category; `where` predicates are [field, op, percentile] with op ltp/gtp = below/above that corpus percentile of the named fingerprint field. build_taste_space.py resolves each side to an exemplar venue set and derives the question's taste-space axis as the normalized difference of side centroids. Exactly one anchor question per taste dimension; anchors double as the interpretive axes that back the 5-dim radar/copy view.",
+  "questions": [
+    {
+      "id": "energy_room",
+      "dimension": "energy",
+      "anchor": true,
+      "sign": 1,
+      "prompt": "Which room draws you in?",
+      "negative": "Small, intimate, and unhurried",
+      "positive": "Lively, social, and full of movement",
+      "copy": {
+        "negative": "Quieter places are beginning to stand out.",
+        "positive": "Livelier places are gaining emphasis.",
+        "both": "Keeping both sides of this choice open on your map."
+      },
+      "sides": {
+        "negative": {
+          "categories": [
+            "cafe",
+            "restaurant"
+          ],
+          "where": [
+            [
+              "area.meanActivity",
+              "ltp",
+              40
+            ],
+            [
+              "area.lateShare",
+              "ltp",
+              45
+            ]
+          ]
+        },
+        "positive": {
+          "categories": [
+            "bar",
+            "nightlife"
+          ],
+          "where": [
+            [
+              "area.lateShare",
+              "gtp",
+              60
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "novelty_reco",
+      "dimension": "novelty",
+      "anchor": true,
+      "sign": 1,
+      "prompt": "Which recommendation sounds better?",
+      "negative": "A New York institution that still deserves its reputation",
+      "positive": "Somewhere you probably would not find without being told",
+      "copy": {
+        "negative": "New York institutions are gaining emphasis.",
+        "positive": "More unexpected finds are beginning to surface.",
+        "both": "Keeping both sides of this choice open on your map."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "role.anchor",
+              "gtp",
+              72
+            ],
+            [
+              "spend.q",
+              "gtp",
+              55
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "role.localRarity",
+              "gtp",
+              70
+            ],
+            [
+              "role.cityRarity",
+              "gtp",
+              55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "wandering_afternoon",
+      "dimension": "wandering",
+      "anchor": true,
+      "sign": 1,
+      "prompt": "How would you rather spend an afternoon?",
+      "negative": "One place worth crossing town for",
+      "positive": "Several stops with room to wander",
+      "copy": {
+        "negative": "Destination-worthy places are gaining emphasis.",
+        "positive": "Areas with several worthwhile stops are gaining emphasis.",
+        "both": "Keeping both sides of this choice open on your map."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "role.nextStrong",
+              "gtp",
+              68
+            ],
+            [
+              "role.anchor",
+              "gtp",
+              55
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "role.density",
+              "gtp",
+              70
+            ],
+            [
+              "ecology.entropy1",
+              "gtp",
+              55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "formality_plan",
+      "dimension": "formality",
+      "anchor": true,
+      "sign": 1,
+      "prompt": "Which plan feels more like you?",
+      "negative": "Decide when you arrive",
+      "positive": "Book the place and plan around it",
+      "copy": {
+        "negative": "Your map is becoming more informal and spontaneous.",
+        "positive": "Planned occasions are gaining emphasis.",
+        "both": "Keeping both sides of this choice open on your map."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "spend.price",
+              "ltp",
+              20
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "spend.price",
+              "gtp",
+              89
+            ],
+            [
+              "role.anchor",
+              "gtp",
+              40
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "neighborhood_icons",
+      "dimension": "neighborhoodOrientation",
+      "anchor": true,
+      "sign": 1,
+      "prompt": "Which New York are you looking for?",
+      "negative": "The icons when they are genuinely worth it",
+      "positive": "The version that feels closer to neighborhood life",
+      "copy": {
+        "negative": "Iconic New York remains welcome on your map.",
+        "positive": "Neighborhood-oriented areas are gaining emphasis.",
+        "both": "Keeping both sides of this choice open on your map."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "area.touristMean",
+              "gtp",
+              70
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "area.localMean",
+              "gtp",
+              68
+            ],
+            [
+              "area.touristMean",
+              "ltp",
+              50
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "late_or_early",
+      "dimension": null,
+      "anchor": false,
+      "sign": 1,
+      "prompt": "When does the city feel most like yours?",
+      "negative": "Morning light and a first coffee",
+      "positive": "Well after midnight",
+      "copy": {
+        "negative": "Daytime rhythms are gaining emphasis.",
+        "positive": "Late-night rhythms are gaining emphasis.",
+        "both": "Keeping your map open around the clock."
+      },
+      "sides": {
+        "negative": {
+          "categories": [
+            "cafe"
+          ],
+          "where": [
+            [
+              "area.lateShare",
+              "ltp",
+              45
+            ]
+          ]
+        },
+        "positive": {
+          "categories": [
+            "bar",
+            "nightlife"
+          ],
+          "where": [
+            [
+              "area.lateShare",
+              "gtp",
+              72
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "weekend_rhythm",
+      "dimension": null,
+      "anchor": false,
+      "sign": 1,
+      "prompt": "Pick a time to explore.",
+      "negative": "A quiet weekday afternoon",
+      "positive": "The full swing of a Saturday",
+      "copy": {
+        "negative": "Weekday-paced places are gaining emphasis.",
+        "positive": "Weekend-peaking places are gaining emphasis.",
+        "both": "Keeping both rhythms open on your map."
+      },
+      "sides": {
+        "negative": {
+          "categories": [
+            "restaurant",
+            "bar"
+          ],
+          "where": [
+            [
+              "area.weekendRatio",
+              "ltp",
+              35
+            ]
+          ]
+        },
+        "positive": {
+          "categories": [
+            "restaurant",
+            "bar"
+          ],
+          "where": [
+            [
+              "area.weekendRatio",
+              "gtp",
+              70
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "dense_streets",
+      "dimension": "wandering",
+      "anchor": false,
+      "sign": 1,
+      "prompt": "Which street do you turn down?",
+      "negative": "A calm block with one glowing window",
+      "positive": "A strip where every doorway is something",
+      "copy": {
+        "negative": "Calmer blocks are gaining emphasis.",
+        "positive": "Busier, denser streets are gaining emphasis.",
+        "both": "Keeping both kinds of streets on your map."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "ecology.density1",
+              "ltp",
+              35
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "ecology.density1",
+              "gtp",
+              75
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "mixed_corner",
+      "dimension": null,
+      "anchor": false,
+      "sign": 1,
+      "prompt": "Which corner of the city?",
+      "negative": "A place that is the only reason to be there",
+      "positive": "A corner where cafes, bars, and shops all mix",
+      "copy": {
+        "negative": "Standalone destinations are gaining emphasis.",
+        "positive": "Mixed, layered corners are gaining emphasis.",
+        "both": "Keeping both kinds of corners open."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "ecology.entropy0",
+              "ltp",
+              35
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "ecology.entropy0",
+              "gtp",
+              70
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "walkable_flavor",
+      "dimension": null,
+      "anchor": false,
+      "sign": 1,
+      "prompt": "Within a short walk, you want more…",
+      "negative": "Coffee counters and bakeries",
+      "positive": "Bars spilling onto the sidewalk",
+      "copy": {
+        "negative": "Daytime cafe streets are gaining emphasis.",
+        "positive": "Bar-lined blocks are gaining emphasis.",
+        "both": "Keeping both flavors of street nearby."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "ecology.cafeShare1",
+              "gtp",
+              70
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "ecology.barShare1",
+              "gtp",
+              70
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "park_or_museum",
+      "dimension": null,
+      "anchor": false,
+      "sign": 1,
+      "prompt": "A free afternoon, out of the apartment?",
+      "negative": "A museum you have been meaning to see",
+      "positive": "A long loop through a park",
+      "copy": {
+        "negative": "Indoor culture is gaining emphasis.",
+        "positive": "Time outside is gaining emphasis.",
+        "both": "Keeping indoors and outdoors open."
+      },
+      "sides": {
+        "negative": {
+          "categories": [
+            "museum"
+          ]
+        },
+        "positive": {
+          "categories": [
+            "park"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cafe_role",
+      "dimension": "wandering",
+      "anchor": false,
+      "sign": -1,
+      "prompt": "Your kind of cafe",
+      "negative": "A neighborhood counter you would visit weekly",
+      "positive": "A destination worth a detour",
+      "copy": {
+        "negative": "Everyday neighborhood spots are gaining emphasis.",
+        "positive": "Detour-worthy destinations are gaining emphasis.",
+        "both": "Keeping both kinds of cafes on your map."
+      },
+      "sides": {
+        "negative": {
+          "categories": [
+            "cafe"
+          ],
+          "where": [
+            [
+              "area.localMean",
+              "gtp",
+              50
+            ]
+          ]
+        },
+        "positive": {
+          "categories": [
+            "cafe"
+          ],
+          "where": [
+            [
+              "role.anchor",
+              "gtp",
+              60
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "dinner_scene",
+      "dimension": "energy",
+      "anchor": false,
+      "sign": 1,
+      "prompt": "Dinner tonight",
+      "negative": "A quiet room where you can actually talk",
+      "positive": "A dining room with a hum to it",
+      "copy": {
+        "negative": "Quieter dining rooms are gaining emphasis.",
+        "positive": "Livelier dining rooms are gaining emphasis.",
+        "both": "Keeping both kinds of rooms on your map."
+      },
+      "sides": {
+        "negative": {
+          "categories": [
+            "restaurant"
+          ],
+          "where": [
+            [
+              "area.meanActivity",
+              "ltp",
+              40
+            ]
+          ]
+        },
+        "positive": {
+          "categories": [
+            "restaurant"
+          ],
+          "where": [
+            [
+              "area.meanActivity",
+              "gtp",
+              70
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crossing_town",
+      "dimension": null,
+      "anchor": false,
+      "sign": 1,
+      "prompt": "How far will you go?",
+      "negative": "Stay close and know it well",
+      "positive": "Cross the bridge for the right room",
+      "copy": {
+        "negative": "Your home turf is gaining emphasis.",
+        "positive": "Worth-the-trip places are gaining emphasis.",
+        "both": "Keeping near and far both open."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "area.localMean",
+              "gtp",
+              60
+            ],
+            [
+              "role.nextStrong",
+              "ltp",
+              50
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "role.nextStrong",
+              "gtp",
+              70
+            ],
+            [
+              "role.cityRarity",
+              "gtp",
+              50
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "polish_or_soul",
+      "dimension": "novelty",
+      "anchor": false,
+      "sign": 1,
+      "prompt": "You forgive a place almost anything if…",
+      "negative": "It is flawless at what it does",
+      "positive": "It has a soul of its own",
+      "copy": {
+        "negative": "Polished, proven places are gaining emphasis.",
+        "positive": "Places with character are gaining emphasis.",
+        "both": "Keeping polish and character both open."
+      },
+      "sides": {
+        "negative": {
+          "where": [
+            [
+              "spend.q",
+              "gtp",
+              72
+            ],
+            [
+              "role.anchor",
+              "gtp",
+              50
+            ]
+          ]
+        },
+        "positive": {
+          "where": [
+            [
+              "spend.q",
+              "ltp",
+              55
+            ],
+            [
+              "role.localRarity",
+              "gtp",
+              60
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

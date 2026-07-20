@@ -15,6 +15,7 @@ import { INTENT_ORDER, INTENT_VISUALS } from "@/lib/brand";
 import { lensWeightsFromTaste, rankComplements, rankSimilar } from "@/lib/placeRetrieval";
 import { buildAreaRecommendations, standaloneRadarEvidence } from "@/lib/recommendations";
 import { localUserStorage } from "@/lib/storage";
+import { venueVector } from "@/lib/tasteSpace";
 import { currentTypicalTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { Intent, MapMode, TasteProfile, UserLocation, VenueRecord, WeekdayKey } from "@/types/data";
@@ -38,20 +39,23 @@ const MapView = () => {
   const [areaRailCollapsed, setAreaRailCollapsed] = useState(false);
   const [intentMenuOpen, setIntentMenuOpen] = useState(false);
   const city = useCityData(day);
-  const { tasteProfile, setTasteProfile, learnFromEvidence } = useTasteProfile();
+  const { tasteProfile, setTasteProfile, learnFromEvidence } = useTasteProfile(city.tasteSpace);
   const { places, updatePlace } = useUserPlaceState();
   const activeTasteProfile = previewTasteProfile ?? tasteProfile;
 
   useEffect(() => { if (tasteProfile) setMapMode("personalized"); }, []);
   useEffect(() => { setSelectedVenueId(null); setCitySelectedVenueId(null); }, [intent]);
 
+  const venueIndex = useMemo(() => new Map(city.venues.map((venue, index) => [venue.id, index])), [city.venues]);
+
   const allAreas = useMemo(() => {
     if (!city.geometry || !city.metrics || !city.venues.length) return [];
     return buildAreaRecommendations({
       geometry: city.geometry, metrics: city.metrics, venues: city.venues, categoryCurves: city.categoryCurves,
       hour, intent, tasteProfile: activeTasteProfile, mapMode, userLocation,
+      tasteSpace: city.tasteSpace, venueIndex,
     });
-  }, [activeTasteProfile, city.categoryCurves, city.geometry, city.metrics, city.venues, hour, intent, mapMode, userLocation]);
+  }, [activeTasteProfile, city.categoryCurves, city.geometry, city.metrics, city.tasteSpace, city.venues, hour, intent, mapMode, userLocation, venueIndex]);
 
   const areas = useMemo(() => allAreas.slice(0, 3), [allAreas]);
   const selectedArea = useMemo(() => allAreas.find((area) => area.id === selectedAreaId) ?? null, [allAreas, selectedAreaId]);
@@ -63,7 +67,12 @@ const MapView = () => {
   const citySelectedVenue = citySelectedVenueId ? venuesById.get(citySelectedVenueId) ?? null : null;
   const selectedPlace = selectedRankedVenue?.venue ?? citySelectedVenue;
   const selectedPlaceRadarEvidence = selectedRankedVenue?.radarEvidence
-    ?? (citySelectedVenue ? standaloneRadarEvidence(citySelectedVenue) : null);
+    ?? (citySelectedVenue ? standaloneRadarEvidence(citySelectedVenue, city.tasteSpace, venueIndex.get(citySelectedVenue.id)) : null);
+  const selectedPlaceVector = (() => {
+    if (!city.tasteSpace || !selectedPlace) return undefined;
+    const index = venueIndex.get(selectedPlace.id);
+    return index === undefined ? undefined : venueVector(city.tasteSpace, index);
+  })();
 
   const similarWeights = useMemo(() => lensWeightsFromTaste(activeTasteProfile), [activeTasteProfile]);
   const neighborEntry = selectedPlace ? city.placeNeighbors?.get(selectedPlace.id) ?? null : null;
@@ -157,14 +166,14 @@ const MapView = () => {
   const updateSelectedPlace = (patch: Parameters<typeof updatePlace>[1]) => {
     if (!selectedPlace || !selectedPlaceRadarEvidence) return;
     const current = places[selectedPlace.id];
-    if (patch.saved === true && !current?.saved) learnFromEvidence(selectedPlaceRadarEvidence, 0.5);
-    if (patch.endorsed === true && !current?.endorsed) learnFromEvidence(selectedPlaceRadarEvidence, 2);
+    if (patch.saved === true && !current?.saved) learnFromEvidence(selectedPlaceRadarEvidence, 0.5, selectedPlaceVector);
+    if (patch.endorsed === true && !current?.endorsed) learnFromEvidence(selectedPlaceRadarEvidence, 2, selectedPlaceVector);
     updatePlace(selectedPlace.id, patch);
   };
   const recordMapView = () => {
     if (!selectedPlace || !selectedPlaceRadarEvidence) return;
     const current = places[selectedPlace.id];
-    learnFromEvidence(selectedPlaceRadarEvidence, 1);
+    learnFromEvidence(selectedPlaceRadarEvidence, 1, selectedPlaceVector);
     updatePlace(selectedPlace.id, { mapViews: (current?.mapViews ?? 0) + 1 });
   };
   const closeTasteFlow = () => {
@@ -246,7 +255,7 @@ const MapView = () => {
           </div>
           <div className="brand-surface pointer-events-auto mt-2 hidden w-fit max-w-[92vw] flex-wrap items-center rounded-2xl p-1 sm:flex"><button type="button" onClick={() => setMapMode("personalized")} aria-pressed={mapMode === "personalized"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "personalized" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Your map</button><button type="button" onClick={() => setMapMode("baseline")} aria-pressed={mapMode === "baseline"} className={cn("rounded-full px-3 py-1.5 text-[11px]", mapMode === "baseline" ? "bg-foreground text-background" : "text-muted-foreground")}>City baseline</button><span className="px-2 text-[10px] text-muted-foreground">{tasteProfile.wandering >= 0 ? "Room to wander" : "Destination-led"} · {tasteProfile.formality <= 0 ? "Informal" : "Planned occasions"} · {tasteProfile.energy >= 0 ? "Lively" : "Quieter"}</span><button type="button" onClick={() => { setTasteProfile(null); setMapMode("baseline"); }} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground" aria-label="Reset taste"><SlidersHorizontal className="h-3.5 w-3.5" /></button></div>
         </>}
-        {tasteProfile === null && showTasteNudge && !selectedArea && <div className="brand-surface pointer-events-auto mt-2.5 w-[min(86vw,300px)] rounded-2xl p-4"><p className="type-headline">Make this map more yours with 5 quick choices.</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} className="brand-primary-button min-h-10 px-3 py-2">Shape my map</button><button type="button" onClick={() => setShowTasteNudge(false)} className="type-button min-h-10 rounded-full px-3 py-2 text-muted-foreground hover:bg-card">Explore first</button></div></div>}
+        {tasteProfile === null && showTasteNudge && !selectedArea && <div className="brand-surface pointer-events-auto mt-2.5 w-[min(86vw,300px)] rounded-2xl p-4"><p className="type-headline">Make this map more yours with a few quick choices.</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => { setTasteOpen(true); setShowTasteNudge(false); }} className="brand-primary-button min-h-10 px-3 py-2">Shape my map</button><button type="button" onClick={() => setShowTasteNudge(false)} className="type-button min-h-10 rounded-full px-3 py-2 text-muted-foreground hover:bg-card">Explore first</button></div></div>}
       </header>
 
       {(locationStatus === "denied" || locationStatus === "unsupported") && <div role="status" className="brand-surface absolute right-3 top-28 z-20 max-w-[250px] rounded-xl px-3 py-2 text-[11px] text-muted-foreground">Location isn’t available. Recommendations still follow the visible NYC coverage.</div>}
@@ -259,7 +268,7 @@ const MapView = () => {
 
       <VenueSheet ranked={selectedRankedVenue} tasteProfile={activeTasteProfile} state={selectedRankedVenue ? places[selectedRankedVenue.venue.id] : undefined} onUpdate={updateSelectedPlace} onViewOnMaps={recordMapView} onShapeTaste={() => { setTasteOpen(true); setShowTasteNudge(false); }} onClose={() => setSelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
       <PlaceSheet venue={citySelectedVenue} tasteProfile={activeTasteProfile} state={citySelectedVenue ? places[citySelectedVenue.id] : undefined} onUpdate={updateSelectedPlace} onViewOnMaps={recordMapView} onShapeTaste={() => { setTasteOpen(true); setShowTasteNudge(false); }} onClose={() => setCitySelectedVenueId(null)} similar={similarResults} complements={complementResults} onSelectPlace={selectPlace} />
-      <TasteFlow open={tasteOpen} surfacedVenues={(allAreas[0]?.recommendedVenues ?? []).slice(0, 2).map((item) => item.venue.name)} onClose={closeTasteFlow} onPreview={(profile) => { setPreviewTasteProfile(profile); setMapMode("personalized"); }} onComplete={(profile) => { setTasteProfile(profile); setPreviewTasteProfile(null); setMapMode("personalized"); setTasteOpen(false); setShowTasteReveal(true); }} />
+      <TasteFlow open={tasteOpen} tasteSpace={city.tasteSpace} intent={intent} surfacedVenues={(allAreas[0]?.recommendedVenues ?? []).slice(0, 2).map((item) => item.venue.name)} onClose={closeTasteFlow} onPreview={(profile) => { setPreviewTasteProfile(profile); setMapMode("personalized"); }} onComplete={(profile) => { setTasteProfile(profile); setPreviewTasteProfile(null); setMapMode("personalized"); setTasteOpen(false); setShowTasteReveal(true); }} />
       {tasteProfile && showTasteReveal && <TasteSummary profile={tasteProfile} topArea={areas[0]} onClose={() => setShowTasteReveal(false)} onAdjust={() => { setShowTasteReveal(false); setTasteOpen(true); }} />}
     </main>
   );
