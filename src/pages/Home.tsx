@@ -380,7 +380,7 @@ const Home = () => {
               Places
             </a>
           </div>
-          <LandingLinkButton to="/map" variant="primary" size="md">
+          <LandingLinkButton to="/map" variant="ghost" size="md">
             Open map
           </LandingLinkButton>
         </div>

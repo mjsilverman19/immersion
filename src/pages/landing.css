@@ -55,6 +55,30 @@
   color: #1a44be;
 }
 
+.landing a.landing-btn {
+  text-decoration: none;
+}
+
+.landing a.landing-btn--primary {
+  color: var(--primary-foreground);
+}
+
+.landing a.landing-btn--primary:hover {
+  color: var(--primary-foreground);
+}
+
+.landing a.landing-btn--ghost,
+.landing a.landing-btn--secondary,
+.landing a.landing-btn--invert {
+  color: var(--text);
+}
+
+.landing a.landing-btn--ghost:hover,
+.landing a.landing-btn--secondary:hover,
+.landing a.landing-btn--invert:hover {
+  color: var(--text);
+}
+
 .landing [data-carousel]::-webkit-scrollbar {
   display: none;
 }
@@ -86,16 +110,14 @@
 }
 
 .landing-btn--primary {
-  border: 1px solid rgba(29, 78, 216, 0.22);
-  background: #fff;
-  color: var(--primary);
-  box-shadow: 0 6px 18px rgba(36, 34, 31, 0.1);
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-primary);
 }
 
 .landing-btn--primary:hover {
-  border-color: rgba(29, 78, 216, 0.45);
-  background: #fff;
-  color: #1a44be;
+  background: #1a44be;
 }
 
 .landing-btn--secondary {
