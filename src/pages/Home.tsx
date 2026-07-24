@@ -246,32 +246,20 @@ function LandingButton({
 }
 
 function LandingLinkButton({
-  to,
+  to = "/map",
   variant = "primary",
   size = "md",
   className,
   children,
-  hash,
 }: {
   to?: string;
-  hash?: string;
   variant?: "primary" | "secondary" | "ghost" | "invert";
   size?: "md" | "lg";
   className?: string;
   children: ReactNode;
 }) {
-  const classes = cn("landing-btn", `landing-btn--${variant}`, `landing-btn--${size}`, className);
-
-  if (hash) {
-    return (
-      <a href={hash} className={classes}>
-        {children}
-      </a>
-    );
-  }
-
   return (
-    <Link to={to ?? "/map"} className={classes}>
+    <Link to={to} className={cn("landing-btn", `landing-btn--${variant}`, `landing-btn--${size}`, className)}>
       {children}
     </Link>
   );
@@ -392,14 +380,9 @@ const Home = () => {
               Places
             </a>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <LandingLinkButton to="/map" variant="ghost" size="md" className="hidden sm:inline-flex">
-              Open map
-            </LandingLinkButton>
-            <LandingLinkButton to="/map" variant="primary" size="md">
-              Start exploring
-            </LandingLinkButton>
-          </div>
+          <LandingLinkButton to="/map" variant="primary" size="md">
+            Open map
+          </LandingLinkButton>
         </div>
       </nav>
 
@@ -466,12 +449,9 @@ const Home = () => {
             Immersion is a new way to explore a city. Log the places you love, find the people who love them too, and
             borrow their taste anywhere you go.
           </p>
-          <div data-reveal="220" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <div data-reveal="220" style={{ display: "flex", justifyContent: "center" }}>
             <LandingLinkButton to="/map" variant="primary" size="lg">
-              Start exploring
-            </LandingLinkButton>
-            <LandingLinkButton hash="#how" variant="secondary" size="lg">
-              How it works
+              Open map
             </LandingLinkButton>
           </div>
         </div>
@@ -666,13 +646,10 @@ const Home = () => {
               >
                 Land with the research already done.
               </h2>
-              <p style={{ margin: "20px 0 28px", maxWidth: "36ch", fontSize: 17, opacity: 0.92, textWrap: "pretty" }}>
+              <p style={{ margin: "20px 0 0", maxWidth: "36ch", fontSize: 17, opacity: 0.92, textWrap: "pretty" }}>
                 People who rate the same spots the way you do, surfaced city by city. Follow them, and their cities become
                 yours.
               </p>
-              <LandingLinkButton to="/map" variant="invert" size="lg">
-                Find your matches
-              </LandingLinkButton>
             </div>
 
             <div className="landing-map-preview" style={{ position: "relative", height: 500 }}>
