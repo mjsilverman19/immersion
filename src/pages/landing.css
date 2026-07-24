@@ -88,13 +88,12 @@
 .landing-btn--primary {
   border: 1px solid transparent;
   background: var(--primary);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(29, 78, 216, 0.35);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-primary);
 }
 
 .landing-btn--primary:hover {
   background: #1a44be;
-  box-shadow: 0 8px 22px rgba(29, 78, 216, 0.4);
 }
 
 .landing-btn--secondary {
