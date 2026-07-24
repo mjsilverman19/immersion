@@ -55,6 +55,30 @@
   color: #1a44be;
 }
 
+.landing a.landing-btn {
+  text-decoration: none;
+}
+
+.landing a.landing-btn--primary {
+  color: var(--primary-foreground);
+}
+
+.landing a.landing-btn--primary:hover {
+  color: var(--primary-foreground);
+}
+
+.landing a.landing-btn--ghost,
+.landing a.landing-btn--secondary,
+.landing a.landing-btn--invert {
+  color: var(--text);
+}
+
+.landing a.landing-btn--ghost:hover,
+.landing a.landing-btn--secondary:hover,
+.landing a.landing-btn--invert:hover {
+  color: var(--text);
+}
+
 .landing [data-carousel]::-webkit-scrollbar {
   display: none;
 }
