@@ -6,7 +6,7 @@ Immersion is a **single static Vite + React + TypeScript SPA** — there is no b
 
 Standard commands live in `package.json` scripts and the README "Run and verify" section — use those (`npm run dev`, `npm test`, `npm run typecheck`, `npm run build`). Notes that aren't obvious from those files:
 
-- Dev server runs on **port 8080** (not Vite's default 5173) with `host: true` — see `vite.config.ts`. The `/` route redirects to `/map`.
+- Dev server runs on **port 8080** (not Vite's default 5173) with `host: true` — see `vite.config.ts`. The `/` route is the marketing homepage; the product lives at `/map`.
 - The base map needs **internet access** for keyless OpenFreeMap vector tiles (`https://tiles.openfreemap.org/planet`). UI type uses Google Fonts **Bricolage Grotesque** (variable opsz/wght); MapLibre labels use committed self-hosted glyph PBFs under `public/fonts/` (`Bricolage Grotesque Medium` / `SemiBold`). Regenerate with `npm run fonts:map` if those stacks change. Optional overrides: `VITE_TILE_URL`, `VITE_GLYPHS_URL` (see `.env.example`); no tokens/secrets required.
 - `npm test` runs Vitest, which includes a **golden-parity test** asserting the client score matches the offline engine exactly, plus calibration diagnostics. If you change scoring logic in `src/lib/`, expect these to fail unless the committed golden data is also regenerated.
 - `VITE_BASE_PATH=/immersion/` is only for the GitHub Pages subpath deploy; leave it unset for local dev.

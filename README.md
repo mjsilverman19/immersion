@@ -73,7 +73,7 @@ npm install
 npm test        # unit + golden-parity + calibration tests
 npm run typecheck
 npm run build
-npm run dev     # opens directly at /map
+npm run dev     # homepage at / ; map at /map
 ```
 
 MapLibre uses keyless OpenFreeMap tiles — no authentication or Mapbox token

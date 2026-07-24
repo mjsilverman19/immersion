@@ -1,0 +1,238 @@
+/* Landing page — Immersion design tokens scoped so they don't clash with
+   Tailwind's RGB-channel --primary / --background vars used by the map app. */
+.landing {
+  --paper: #faf8f5;
+  --surface: #f2ede6;
+  --border: #e3dfd6;
+  --text: #24221f;
+  --muted: #6b6862;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --highlight: #ffb84d;
+  --destructive: #e0483c;
+  --route: #2e7ccb;
+  --water: #dceaf6;
+  --intent-eat: #f07d43;
+  --intent-eat-soft: #fdede5;
+  --intent-drink: #e0483c;
+  --intent-drink-soft: #fbe9e7;
+  --intent-coffee: #2e7ccb;
+  --intent-coffee-soft: #e7f1fa;
+  --intent-culture: #7b5af1;
+  --intent-culture-soft: #eeeafd;
+  --intent-nightlife: #ffb84d;
+  --intent-nightlife-soft: #fff3d9;
+  --glass-hairline: rgba(255, 255, 255, 0.55);
+  --glass-hairline-strong: rgba(255, 255, 255, 0.68);
+  --paper-64: rgba(250, 248, 245, 0.64);
+  --paper-75: rgba(250, 248, 245, 0.75);
+  --paper-90: rgba(250, 248, 245, 0.9);
+  --shadow-icon: 0 4px 14px rgba(36, 34, 31, 0.06);
+  --shadow-primary: 0 6px 18px rgba(29, 78, 216, 0.2);
+  --shadow-glass: 0 10px 30px rgba(36, 34, 31, 0.085), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  --blur-xl: 24px;
+  --radius-pill: 9999px;
+  --font-sans: var(--font-bricolage);
+  --font-display: var(--font-bricolage);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --dur-glide: 400ms;
+
+  background: var(--paper);
+  color: var(--text);
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.landing a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.landing a:hover {
+  color: #1a44be;
+}
+
+.landing [data-carousel]::-webkit-scrollbar {
+  display: none;
+}
+
+.landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-variation-settings: "opsz" 12;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, opacity var(--dur-glide) var(--ease-out);
+}
+
+.landing-btn--md {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+}
+
+.landing-btn--lg {
+  min-height: 48px;
+  padding: 13px 20px;
+  font-size: 15px;
+}
+
+.landing-btn--primary {
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-primary);
+}
+
+.landing-btn--primary:hover {
+  background: #1a44be;
+}
+
+.landing-btn--secondary {
+  border: 1px solid var(--glass-hairline);
+  background: var(--paper-75);
+  color: var(--text);
+  box-shadow: var(--shadow-icon);
+  backdrop-filter: blur(var(--blur-xl));
+  -webkit-backdrop-filter: blur(var(--blur-xl));
+}
+
+.landing-btn--secondary:hover {
+  background: var(--paper-90);
+}
+
+.landing-btn--ghost {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.landing-btn--ghost:hover {
+  border-color: rgba(36, 34, 31, 0.28);
+}
+
+.landing-btn--invert {
+  border: none;
+  background: #fff;
+  color: var(--text);
+}
+
+.landing-btn--invert:hover {
+  opacity: 0.88;
+}
+
+.landing-nav-link {
+  color: var(--text) !important;
+  font-size: 15px;
+  font-weight: 500;
+  font-variation-settings: "opsz" 12;
+  transition: color 150ms var(--ease-out);
+}
+
+.landing-nav-link:hover {
+  color: var(--primary) !important;
+}
+
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity var(--dur-glide) var(--ease-out),
+    transform var(--dur-glide) var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.landing-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.landing-card-lift {
+  transition: transform var(--dur-glide) var(--ease-out), border-color var(--dur-glide) var(--ease-out);
+}
+
+.landing-card-lift:hover {
+  transform: translateY(-4px);
+}
+
+.landing-values-card:hover {
+  border-color: rgba(29, 78, 216, 0.3);
+}
+
+.landing-map-frame {
+  transition: transform var(--dur-glide) var(--ease-out);
+}
+
+.landing-map-frame:hover {
+  transform: rotate(0deg) scale(1.01);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .landing-card-lift,
+  .landing-map-frame,
+  .landing-btn {
+    transition: none !important;
+  }
+
+  .landing-card-lift:hover,
+  .landing-map-frame:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .landing-nav-links {
+    display: none !important;
+  }
+
+  .landing-hero-title {
+    font-size: clamp(42px, 11vw, 64px) !important;
+  }
+
+  .landing-section-title {
+    font-size: clamp(32px, 7vw, 46px) !important;
+  }
+
+  .landing-values-grid,
+  .landing-intent-grid,
+  .landing-blue-band {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-blue-band {
+    padding: 40px 28px !important;
+    gap: 36px !important;
+  }
+
+  .landing-map-preview {
+    height: 360px !important;
+  }
+
+  .landing-carousel {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+
+  .landing-carousel-card {
+    flex-basis: min(320px, 85vw) !important;
+  }
+
+  .landing-footer-inner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
